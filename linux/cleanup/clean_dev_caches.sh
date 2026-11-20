@@ -25,7 +25,8 @@ banner "Developer Cache Cleanup"
 before="$(free_mb)"
 
 step 1 1 "Developer package caches"
-dev_clean npm npm cache clean --force
+# The npm cache and pnpm store may be the shared cache, so they are only pruned, never wiped.
+dev_clean npm npm cache verify
 dev_clean pnpm pnpm store prune
 dev_clean yarn yarn cache clean
 dev_clean bun bun pm cache rm

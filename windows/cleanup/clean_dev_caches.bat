@@ -20,21 +20,22 @@ echo.
 
 rem Only package download caches are removed. Your project files, source code and
 rem node_modules folders are never touched.
+rem The npm cache and pnpm store may be the shared cache, so they are only pruned, never wiped.
 
 echo [1/6] Measuring free space before cleanup...
 set "FREE_BEFORE="
 for /f "usebackq" %%A in (`powershell -NoProfile -Command "[math]::Floor((Get-PSDrive -Name '%SystemDrive:~0,1%').Free / 1MB)"`) do set "FREE_BEFORE=%%A"
 
 echo.
-echo [2/6] npm cache...
+echo [2/6] npm cache - verify, removes only broken or unused entries...
 set "RC=1"
 where npm >nul 2>&1
 set "RC=%errorlevel%"
 if not "%RC%"=="0" echo   npm not found, skipped
 if not "%RC%"=="0" goto :npm_done
-if defined DRYRUN echo   [dry run] would run npm cache clean --force
+if defined DRYRUN echo   [dry run] would run npm cache verify
 if defined DRYRUN goto :npm_done
-call npm cache clean --force
+call npm cache verify
 :npm_done
 
 echo.
