@@ -124,7 +124,7 @@ echo [5/5] Environment variables for your user...
 call :SetVar CARGO_TARGET_DIR "%CACHE%\cargo-target"
 call :SetVar CARGO_INCREMENTAL 0
 call :SetVar SCCACHE_DIR "%CACHE%\sccache"
-call :SetVar SCCACHE_CACHE_SIZE 10G
+call :SetVar SCCACHE_CACHE_SIZE 5G
 call :SetVar GRADLE_USER_HOME "%CACHE%\gradle"
 call :SetVar PUPPETEER_CACHE_DIR "%CACHE%\puppeteer"
 if defined SCCACHE_OK call :SetVar RUSTC_WRAPPER sccache

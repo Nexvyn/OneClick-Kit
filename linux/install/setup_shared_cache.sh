@@ -120,7 +120,7 @@ block="$MARK_START"$'\n'
 block+="export CARGO_TARGET_DIR=\"$CACHE/cargo-target\""$'\n'
 block+="export CARGO_INCREMENTAL=0"$'\n'
 block+="export SCCACHE_DIR=\"$CACHE/sccache\""$'\n'
-block+="export SCCACHE_CACHE_SIZE=10G"$'\n'
+block+="export SCCACHE_CACHE_SIZE=5G"$'\n'
 block+="export GRADLE_USER_HOME=\"$CACHE/gradle\""$'\n'
 block+="export PUPPETEER_CACHE_DIR=\"$CACHE/puppeteer\""$'\n'
 if [[ $SCCACHE_OK -eq 1 ]]; then

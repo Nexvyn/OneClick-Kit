@@ -11,7 +11,7 @@ Default location (`<CACHE>` below):
 <CACHE>/
   pnpm-store/     pnpm package store (projects' node_modules hard-link to it)
   cargo-target/   Rust build output (CARGO_TARGET_DIR)
-  sccache/        compiled Rust crates reused across projects, capped at 10 GB (SCCACHE_DIR)
+  sccache/        compiled Rust crates reused across projects, capped at 5 GB (SCCACHE_DIR)
   gradle/         Android/Gradle cache (GRADLE_USER_HOME)
   npm-cache/      npm and npx download cache
   puppeteer/      Puppeteer browser downloads
@@ -39,7 +39,7 @@ Open a new terminal afterwards (on Linux, log out and back in or run `source ~/.
 | env `CARGO_INCREMENTAL` | `0` (sccache needs incremental builds off) |
 | env `RUSTC_WRAPPER` | `sccache`, only set when sccache is installed |
 | env `SCCACHE_DIR` | `<CACHE>/sccache` |
-| env `SCCACHE_CACHE_SIZE` | `10G` |
+| env `SCCACHE_CACHE_SIZE` | `5G` |
 | env `GRADLE_USER_HOME` | `<CACHE>/gradle` |
 | env `PUPPETEER_CACHE_DIR` | `<CACHE>/puppeteer` |
 
@@ -60,7 +60,7 @@ Use pnpm only, never npm or yarn, in projects.
 - The OneClick Kit developer cleanup only prunes the shared cache: `pnpm store prune` removes packages no project uses any more, and `npm cache verify` removes only broken or unused entries. It never wipes the cache.
 - `cargo-target` has no size limit. Delete it by hand when it gets large; the rebuild reuses `sccache`, so it is much faster than a build from nothing.
 - `cargo clean` in any project wipes `cargo-target` for every project, because they all share it.
-- `sccache` drops its oldest entries on its own at 10 GB. `sccache --show-stats` shows hits, misses and size.
+- `sccache` drops its oldest entries on its own at 5 GB. `sccache --show-stats` shows hits, misses and size.
 
 ## Optional (Windows): skip Defender scanning for this folder
 
