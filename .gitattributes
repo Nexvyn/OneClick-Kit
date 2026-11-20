@@ -1,0 +1,9 @@
+* text=auto
+# Windows batch files break with LF endings, so always check them out with CRLF.
+*.bat      text eol=crlf
+*.cs       text eol=crlf
+*.manifest text eol=crlf
+# Shell scripts break with CRLF endings on Linux.
+*.sh       text eol=lf
+*.txt      text eol=lf
+*.exe      binary
