@@ -36,11 +36,16 @@ echo   Keep it on the same drive as your projects - hard links do not work acros
 echo.
 echo [2/5] Folders...
 call :MakeDir pnpm-store
-call :MakeDir cargo-target
+call :MakeDir cargo-targets
 call :MakeDir sccache
 call :MakeDir gradle
 call :MakeDir npm-cache
 call :MakeDir puppeteer
+call :MakeDir playwright
+call :MakeDir bun-cache
+call :MakeDir yarn-cache
+call :MakeDir pip-cache
+call :MakeDir uv-cache
 
 echo.
 echo [3/5] Tools...
@@ -91,13 +96,13 @@ set "RESULT=1"
 goto :pnpm_settings_done
 :pnpm_settings
 if defined DRYRUN echo   [dry run] would run pnpm config set store-dir "%CACHE%\pnpm-store" --global
-if defined DRYRUN echo   [dry run] would run pnpm config set package-import-method hardlink --global
+if defined DRYRUN echo   [dry run] would run pnpm config set package-import-method auto --global
 if defined DRYRUN goto :pnpm_settings_done
 call pnpm config set store-dir "%CACHE%\pnpm-store" --global
 set "RC=%errorlevel%"
 if not "%RC%"=="0" echo   WARNING: could not set the pnpm store folder.
 if not "%RC%"=="0" set "RESULT=1"
-call pnpm config set package-import-method hardlink --global
+call pnpm config set package-import-method auto --global
 set "RC=%errorlevel%"
 if not "%RC%"=="0" echo   WARNING: could not set the pnpm import method.
 if not "%RC%"=="0" set "RESULT=1"
@@ -107,9 +112,9 @@ where npm >nul 2>&1
 set "RC=%errorlevel%"
 if not "%RC%"=="0" echo   npm not found, npm settings skipped
 if not "%RC%"=="0" goto :npm_settings_done
-if defined DRYRUN echo   [dry run] would run npm config set cache "%CACHE%\npm-cache" --global
+if defined DRYRUN echo   [dry run] would run npm config set cache "%CACHE%\npm-cache" --location=user
 if defined DRYRUN goto :npm_settings_done
-call npm config set cache "%CACHE%\npm-cache" --global
+call npm config set cache "%CACHE%\npm-cache" --location=user
 set "RC=%errorlevel%"
 if "%RC%"=="0" goto :npm_settings_done
 call npm config set cache "%CACHE%\npm-cache"
@@ -121,17 +126,26 @@ if not "%RC%"=="0" set "RESULT=1"
 
 echo.
 echo [5/5] Environment variables for your user...
-call :SetVar CARGO_TARGET_DIR "%CACHE%\cargo-target"
-call :SetVar CARGO_INCREMENTAL 0
+call :SetVar ONECLICK_CACHE_ROOT "%CACHE%"
+rem Remove only the legacy target value created by OneClick Kit, not custom settings.
+if defined DRYRUN echo   [dry run] would check legacy CARGO_TARGET_DIR
+if not defined DRYRUN powershell -NoProfile -Command "$v=[Environment]::GetEnvironmentVariable('CARGO_TARGET_DIR','User'); if ($v -eq (Join-Path $env:CACHE 'cargo-target') -or $v -eq (Join-Path $env:USERPROFILE 'Desktop\F-project\shared-cache\cargo-target')) { [Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR',$null,'User') }"
+call :SetVar SCCACHE_ALLOW_INCREMENTAL 1
 call :SetVar SCCACHE_DIR "%CACHE%\sccache"
 call :SetVar SCCACHE_CACHE_SIZE 5G
 call :SetVar GRADLE_USER_HOME "%CACHE%\gradle"
 call :SetVar PUPPETEER_CACHE_DIR "%CACHE%\puppeteer"
+call :SetVar PLAYWRIGHT_BROWSERS_PATH "%CACHE%\playwright"
+call :SetVar BUN_INSTALL_CACHE_DIR "%CACHE%\bun-cache"
+call :SetVar YARN_GLOBAL_FOLDER "%CACHE%\yarn-cache"
+call :SetVar YARN_ENABLE_GLOBAL_CACHE true
+call :SetVar PIP_CACHE_DIR "%CACHE%\pip-cache"
+call :SetVar UV_CACHE_DIR "%CACHE%\uv-cache"
 if defined SCCACHE_OK call :SetVar RUSTC_WRAPPER sccache
 if not defined SCCACHE_OK echo   RUSTC_WRAPPER not set - Rust builds fail when it points to a missing sccache.
 
 echo.
-echo Shared cache setup finished. Open a new terminal, then run pnpm install in each project.
+echo Shared cache setup finished. Open a new terminal, then use the project tool in docs/shared-cache.md.
 if not defined AUTO echo Press any key to close...
 if not defined AUTO pause >nul
 exit /b %RESULT%

@@ -1,78 +1,42 @@
-# Shared cache
+# Shared development cache
 
-One shared, regenerable cache folder for every project on the PC. Everything in it can be deleted at any time. Nothing is lost: it is rebuilt on the next install or build, which is slower once.
+Share downloaded packages and eligible compiler outputs, not a single mutable build directory. Cache files are regenerable, but never remove them during active work or without review.
 
-Default location (`<CACHE>` below):
+Run the existing setup script, then reopen the terminal. The setup configures separate npm, pnpm, modern Yarn, Bun, pip and uv caches, plus Gradle, Playwright and Puppeteer download locations. Existing Cargo registry/Git downloads remain in Cargo home. Keep the cache on the same filesystem as projects for pnpm linking. The setup no longer sets a single global Cargo target; it preserves the old directory for manual review. If a custom legacy CARGO_TARGET_DIR remains, remove or adjust it yourself after verifying its origin.
 
-- Windows: `%USERPROFILE%\Desktop\F-project\shared-cache`
-- Linux: `~/F-project/shared-cache`
+## Project lifecycle
 
-```
-<CACHE>/
-  pnpm-store/     pnpm package store (projects' node_modules hard-link to it)
-  cargo-target/   Rust build output (CARGO_TARGET_DIR)
-  sccache/        compiled Rust crates reused across projects, capped at 5 GB (SCCACHE_DIR)
-  gradle/         Android/Gradle cache (GRADLE_USER_HOME)
-  npm-cache/      npm and npx download cache
-  puppeteer/      Puppeteer browser downloads
-```
+With Node.js installed, use the following commands from the kit (substitute your actual workspace path):
 
-## Set it up
-
-On a new PC, `first_install` runs this for you after installing your apps. To run it on its own:
-
-- Windows: `windows\install\setup_shared_cache.bat` (or `setup_shared_cache.bat "D:\other\place"` for another folder)
-- Linux: `bash linux/install/setup_shared_cache.sh` (or `... setup_shared_cache.sh /other/place`)
-
-It creates the folders, installs `sccache` and `pnpm` if they are missing, and applies the settings below. Running it again is safe. To move the cache, run it with the new folder, then run `pnpm install` in each project.
-
-Open a new terminal afterwards (on Linux, log out and back in or run `source ~/.profile`). Then run `pnpm install` in each project.
-
-## Settings it applies (user level, every project)
-
-| Setting | Value |
-|---|---|
-| pnpm `store-dir` (global) | `<CACHE>/pnpm-store` |
-| pnpm `package-import-method` (global) | `hardlink` (install fails instead of silently copying) |
-| npm `cache` (npx cache lives in `<cache>/_npx`) | `<CACHE>/npm-cache` |
-| env `CARGO_TARGET_DIR` | `<CACHE>/cargo-target` |
-| env `CARGO_INCREMENTAL` | `0` (sccache needs incremental builds off) |
-| env `RUSTC_WRAPPER` | `sccache`, only set when sccache is installed |
-| env `SCCACHE_DIR` | `<CACHE>/sccache` |
-| env `SCCACHE_CACHE_SIZE` | `5G` |
-| env `GRADLE_USER_HOME` | `<CACHE>/gradle` |
-| env `PUPPETEER_CACHE_DIR` | `<CACHE>/puppeteer` |
-
-On Windows the environment variables are saved with `setx`. On Linux they go in a marked block in `~/.profile`, which the script replaces each time it runs.
-
-Use pnpm only, never npm or yarn, in projects.
-
-## Rules for AI agents
-
-- Projects must be on the same drive as the store. Hard links do not work across drives; pnpm silently copies instead and wastes space.
-- Never delete this folder or anything in it without asking the owner.
-- Do not create a per-project `node_modules` store, `.pnpm-store`, or `target` folder, and do not set `target-dir` in a project's `.cargo/config.toml`.
-- Never set `CARGO_TARGET_DIR`, `GRADLE_USER_HOME`, `TMP` or `TEMP` for a single command, and never create a cache, target or temp folder anywhere else.
-- Converting a project: if `package-lock.json` or `yarn.lock` exists, run `pnpm import` first, ask the owner before deleting `node_modules` and the old lockfile, then run `pnpm install`. The prompt in [convert-project-prompt.md](convert-project-prompt.md) does this.
-
-## Cleaning
-
-- The OneClick Kit developer cleanup only prunes the shared cache: `pnpm store prune` removes packages no project uses any more, and `npm cache verify` removes only broken or unused entries. It never wipes the cache.
-- `cargo-target` has no size limit. Delete it by hand when it gets large; the rebuild reuses `sccache`, so it is much faster than a build from nothing.
-- `cargo clean` in any project wipes `cargo-target` for every project, because they all share it.
-- `sccache` drops its oldest entries on its own at 5 GB. `sccache --show-stats` shows hits, misses and size.
-
-## Optional (Windows): skip Defender scanning for this folder
-
-Defender checks every file as it is written. A `pnpm install` writes tens of thousands of small files, so those checks can make installs slow. Only do this if slow installs are a real problem.
-
-In PowerShell as administrator:
-
-```powershell
-Add-MpPreference -ExclusionPath "$env:USERPROFILE\Desktop\F-project\shared-cache"
+```sh
+node tools/devcache.mjs activate /path/to/project
+node tools/devcache.mjs run /path/to/project -- cargo build
+node tools/devcache.mjs status
+node tools/devcache.mjs deactivate /path/to/project
+node tools/devcache.mjs plan
 ```
 
-- Check: `Get-MpPreference | Select -ExpandProperty ExclusionPath`
-- Undo: `Remove-MpPreference -ExclusionPath "$env:USERPROFILE\Desktop\F-project\shared-cache"`
-- Trade-off: Defender stops scanning files in this folder, so a harmful package downloaded here is not caught at download time.
-- If the folder moves, remove the old exclusion and add one for the new path.
+The run command gives each canonical workspace or worktree a distinct hashed target directory under the configured cache root. Use the actual Cargo workspace root (not a member crate). A plain Cargo invocation uses its existing configuration; configure your IDE tasks to use the wrapper if you want the centralized project-specific directory. Existing project configuration is not rewritten. If a project overrides Cargo's intermediate build directory, review it separately.
+
+Activate restores missing dependencies using the existing lockfile and package manager; existing installations are preserved. Pin/unpin controls retention. Deactivate only after stopping external IDEs, builds, tests and watchers. The registry tracks cooperating commands, not all processes. The run wrapper holds a lock until the child command exits.
+
+Status reports logical sizes, deduplicating identifiable hardlinks, and warns at the configured budgets. It is not an exact physical allocation measurement. Plan lists idle candidates without modifying data. The cleanup command is deliberately manual:
+
+```sh
+node tools/devcache.mjs clean /path/to/project deps --apply --confirm-idle
+node tools/devcache.mjs clean /path/to/project target --apply --confirm-idle
+```
+
+Only use it after checking that all external processes have stopped, the directory has no manual edits, and any required release artifacts are backed up. It refuses active/pinned projects, recent projects, linked top-level directories and tracked dependencies. There is no unattended cleanup.
+
+## Retention policy
+
+25 GiB warning; 35 GiB total retention target; aim for 40 GiB free. Cargo per workspace: warning at 4 GiB, target 5 GiB. Shared sccache: 5 GiB. Idle dependencies are eligible after 24 hours; build outputs after 48 hours. Allow exceptions for active builds. These are soft limits, not quotas.
+
+The ordinary developer-cache maintenance step preserves package downloads. Use tool-specific approved pruning only after reviewing space and dependencies. Do not disable antivirus scanning for executable dependency caches. Keep different operating systems and toolchains isolated, and do not sync live caches.
+
+See [development-profile.md](development-profile.md) for the approved tools and installation workflow.
+
+## Bulk idle cleanup
+
+Run `node tools/devcache.mjs clean-idle` to preview eligible registered project outputs. Run `node tools/devcache.mjs clean-idle --apply` interactively to review exact paths and confirm with the phrase shown. Platform launchers are available in the repository root platform directories. This never empties the shared download stores, and skips active/pinned projects. External processes must be stopped first; the tool cannot establish their state automatically.

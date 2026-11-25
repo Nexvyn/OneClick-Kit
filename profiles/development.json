@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "id": "traycer",
+      "name": "Traycer",
+      "url": "https://traycer.ai/download",
+      "kind": "application"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "url": "https://cursor.com/",
+      "kind": "application"
+    },
+    {
+      "id": "moon",
+      "name": "Moon",
+      "url": "https://moonrepo.dev/moon",
+      "kind": "cli"
+    },
+    {
+      "id": "github-cli",
+      "name": "GitHub CLI",
+      "url": "https://cli.github.com/",
+      "kind": "cli"
+    },
+    {
+      "id": "biome",
+      "name": "Biome",
+      "url": "https://biomejs.dev/",
+      "kind": "project"
+    },
+    {
+      "id": "vitest",
+      "name": "Vitest",
+      "url": "https://vitest.dev/",
+      "kind": "project"
+    },
+    {
+      "id": "testing-library",
+      "name": "Testing Library",
+      "url": "https://testing-library.com/",
+      "kind": "project"
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright",
+      "url": "https://playwright.dev/",
+      "kind": "project"
+    },
+    {
+      "id": "lighthouse",
+      "name": "Lighthouse",
+      "url": "https://developer.chrome.com/docs/lighthouse/",
+      "kind": "on-demand"
+    },
+    {
+      "id": "tauri",
+      "name": "Tauri",
+      "url": "https://tauri.app/",
+      "kind": "project"
+    },
+    {
+      "id": "swift",
+      "name": "Swift",
+      "url": "https://swift.org/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "kotlin",
+      "name": "Kotlin",
+      "url": "https://kotlinlang.org/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "maestro",
+      "name": "Maestro",
+      "url": "https://docs.maestro.dev/",
+      "kind": "cli"
+    },
+    {
+      "id": "helium",
+      "name": "Helium Browser",
+      "url": "https://helium.computer/",
+      "kind": "application"
+    },
+    {
+      "id": "kitesurf",
+      "name": "Cloudflare Kitesurf",
+      "url": "https://developers.cloudflare.com/browser-run/kitesurf/",
+      "kind": "remote"
+    },
+    {
+      "id": "nodejs",
+      "name": "Node.js",
+      "url": "https://nodejs.org/en/download",
+      "kind": "toolchain"
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "url": "https://www.notion.so/desktop",
+      "kind": "application",
+      "desktopPlatforms": [
+        "win32"
+      ],
+      "alternative": "Web application"
+    },
+    {
+      "id": "discord",
+      "name": "Discord",
+      "url": "https://discord.com/download",
+      "kind": "application"
+    },
+    {
+      "id": "vlc",
+      "name": "VLC",
+      "url": "https://www.videolan.org/vlc/",
+      "kind": "application"
+    },
+    {
+      "id": "7zip",
+      "name": "7-Zip",
+      "url": "https://www.7-zip.org/download.html",
+      "kind": "application"
+    },
+    {
+      "id": "localsend",
+      "name": "LocalSend",
+      "url": "https://localsend.org/",
+      "kind": "application"
+    },
+    {
+      "id": "ffmpeg",
+      "name": "FFmpeg",
+      "url": "https://ffmpeg.org/download.html",
+      "kind": "cli"
+    },
+    {
+      "id": "figma",
+      "name": "Figma",
+      "url": "https://www.figma.com/downloads/",
+      "kind": "application",
+      "desktopPlatforms": [
+        "win32"
+      ],
+      "alternative": "Web application"
+    },
+    {
+      "id": "wiztree",
+      "name": "WizTree",
+      "url": "https://diskanalyzer.com/",
+      "kind": "application",
+      "desktopPlatforms": [
+        "win32"
+      ]
+    },
+    {
+      "id": "syncthing",
+      "name": "Syncthing",
+      "url": "https://syncthing.net/downloads/",
+      "kind": "application"
+    }
+  ],
+  "cachePolicy": {
+    "unit": "GiB",
+    "aggregateWarning": 25,
+    "aggregateRetention": 35,
+    "minimumFree": 40,
+    "cargoWorkspaceWarning": 4,
+    "cargoWorkspaceRetention": 5,
+    "sccacheRetention": 5,
+    "idleDependenciesHours": 24,
+    "idleBuildHours": 48
+  }
+}

@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/../lib/common.sh"
 
 DEFAULT_FOLDER="$HOME/F-project/shared-cache"
-CACHE_NAMES=(pnpm-store cargo-target sccache gradle npm-cache puppeteer)
+CACHE_NAMES=(pnpm-store cargo-targets sccache gradle npm-cache puppeteer playwright bun-cache yarn-cache pip-cache uv-cache)
 MARK_START="# >>> OneClick Kit shared cache >>>"
 MARK_END="# <<< OneClick Kit shared cache <<<"
 
@@ -41,6 +41,10 @@ if [[ "$FOLDER" == / || "$FOLDER" == "$HOME_DIR" ]]; then
   exit 1
 fi
 CACHE="$FOLDER"
+if [[ "$CACHE" == *\$* || "$CACHE" == *\`* || "$CACHE" == *\"* || "$CACHE" == *\\* || "$CACHE" == *$'\n'* ]]; then
+  fail "Cache path contains unsupported shell characters."
+  exit 1
+fi
 
 banner "Shared Cache Setup"
 
@@ -105,7 +109,7 @@ fi
 step 4 5 "pnpm and npm settings"
 if have pnpm || [[ $PNPM_PENDING -eq 1 ]]; then
   run pnpm config set store-dir "$CACHE/pnpm-store" --global || fail "could not set pnpm store-dir"
-  run pnpm config set package-import-method hardlink --global || fail "could not set pnpm package-import-method"
+  run pnpm config set package-import-method auto --global || fail "could not set pnpm package-import-method"
 else
   fail "pnpm not found, pnpm settings skipped"
 fi
@@ -117,12 +121,18 @@ fi
 
 step 5 5 "Environment variables"
 block="$MARK_START"$'\n'
-block+="export CARGO_TARGET_DIR=\"$CACHE/cargo-target\""$'\n'
-block+="export CARGO_INCREMENTAL=0"$'\n'
+block+="export ONECLICK_CACHE_ROOT=\"$CACHE\""$'\n'
+block+="export SCCACHE_ALLOW_INCREMENTAL=1"$'\n'
 block+="export SCCACHE_DIR=\"$CACHE/sccache\""$'\n'
 block+="export SCCACHE_CACHE_SIZE=5G"$'\n'
 block+="export GRADLE_USER_HOME=\"$CACHE/gradle\""$'\n'
 block+="export PUPPETEER_CACHE_DIR=\"$CACHE/puppeteer\""$'\n'
+block+="export PLAYWRIGHT_BROWSERS_PATH=\"$CACHE/playwright\""$'\n'
+block+="export BUN_INSTALL_CACHE_DIR=\"$CACHE/bun-cache\""$'\n'
+block+="export YARN_GLOBAL_FOLDER=\"$CACHE/yarn-cache\""$'\n'
+block+="export YARN_ENABLE_GLOBAL_CACHE=true"$'\n'
+block+="export PIP_CACHE_DIR=\"$CACHE/pip-cache\""$'\n'
+block+="export UV_CACHE_DIR=\"$CACHE/uv-cache\""$'\n'
 if [[ $SCCACHE_OK -eq 1 ]]; then
   block+="export RUSTC_WRAPPER=sccache"$'\n'
 else
@@ -145,6 +155,6 @@ else
   fi
 fi
 
-printf '\n%s\n' "Shared cache setup finished. Log out and back in, or run: source ~/.profile - then run pnpm install in each project."
+printf '\n%s\n' "Shared cache setup finished. Log out and back in, or run: source ~/.profile - then use the project tool in docs/shared-cache.md."
 pause_end
 exit "$RESULT"
