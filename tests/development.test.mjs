@@ -53,3 +53,20 @@ test('project targets are distinct, status and plan are nonmutating, active clea
     assert.ok(fs.existsSync(entry.target));
   } finally { fs.rmSync(temp,{recursive:true,force:true}); }
 });
+
+test('unified Linux launcher is preview-first and rejects unattended apply',()=>{
+  if (process.platform !== 'linux') return;
+  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'oneclick-launcher-test-'));
+  try {
+    const env={...process.env,ONECLICK_CACHE_ROOT:path.join(temp,'cache'),ONECLICK_STATE_DIR:path.join(temp,'state')};
+    const launch=args=>spawnSync('bash',[path.join(kit,'linux/oneclick.sh'),...args],{encoding:'utf8',env});
+    const preview=launch([]);
+    assert.equal(preview.status,0,preview.stderr);
+    assert.match(preview.stdout,/Nothing was changed/);
+    assert.equal(launch(['update']).status,0);
+    assert.notEqual(launch(['all','--apply']).status,0);
+    assert.notEqual(launch(['--dry-run','--apply']).status,0);
+    assert.ok(!fs.existsSync(path.join(temp,'cache')));
+    assert.ok(!fs.existsSync(path.join(temp,'state')));
+  } finally { fs.rmSync(temp,{recursive:true,force:true}); }
+});

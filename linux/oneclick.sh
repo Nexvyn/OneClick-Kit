@@ -1,94 +1,48 @@
 #!/usr/bin/env bash
-# OneClick Kit - runs the maintenance steps in order and prints a summary.
+# One safe entry point. No action is applied by default.
 set -uo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. "$SCRIPT_DIR/lib/common.sh"
-parse_args "$@"
-refuse_sudo
-
-GREEN=""
-YELLOW=""
-RESET=""
-if [[ -t 1 ]]; then
-  GREEN=$'\033[32m'
-  YELLOW=$'\033[33m'
-  RESET=$'\033[0m'
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mode="${1:-all}"
+apply=0
+if [[ "$mode" == --help || "$mode" == -h || "$mode" == --dry-run ]]; then
+  [[ $# -eq 1 ]] || exit 2
+  mode=all
 fi
-
-banner "OneClick Kit"
-
-printf '\n%s\n' "  This will:"
-printf '%s\n' "    1. Close Chrome, Chromium, Brave, Edge and Firefox and clear their cache"
-printf '%s\n' "       (history, cookies, passwords and logins are kept)"
-printf '%s\n' "    2. Clean package caches, old logs, old temp files, crash reports, thumbnails and Trash"
-printf '%s\n' "    3. Preserve shared developer package caches"
-printf '%s\n' "    4. Install system, Flatpak, Snap and firmware updates"
-
-countdown 10 "Save your work in open browsers first."
-
-KEEPALIVE_PID=""
-if [[ $DRY_RUN -eq 0 ]]; then
-  if ! sudo -v; then
-    printf '%s\n' "sudo password was not accepted. Nothing was changed."
-    exit 1
-  fi
-  ( while true; do sudo -n true; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) 2>/dev/null &
-  KEEPALIVE_PID=$!
-  trap 'kill "$KEEPALIVE_PID" 2>/dev/null' EXIT
+if [[ $# -gt 2 || ( $# -eq 2 && "${2:-}" != --apply && "${2:-}" != --dry-run ) ]]; then
+  printf '%s\n' 'Usage: oneclick.sh [all|install|update|clean|cache] [--apply|--dry-run]'; exit 2
 fi
-
-TOTAL=4
-NAMES=("Browser cache cleanup" "System junk cleanup" "Developer cache cleanup" "System updates")
-PATHS=("cleanup/clean_browser_cache.sh" "cleanup/clean_system_junk.sh" "cleanup/clean_dev_caches.sh" "update/update_system.sh")
-CODES=()
-DURS=()
-
-child_args=(--auto)
-if [[ $DRY_RUN -eq 1 ]]; then
-  child_args+=(--dry-run)
+case "$mode" in all|install|update|clean|cache) ;; *) printf '%s\n' 'Unknown operation'; exit 2 ;; esac
+[[ "${2:-}" == --apply ]] && apply=1
+printf '%s\n' 'OneClick Kit' "Operation: $mode" 'Available: all, install, update, clean, cache.'
+if [[ "$mode" == all || "$mode" == install ]]; then
+  printf '%s\n' 'Install: approved development profile only; unsupported tools are reported.'
+  if command -v node >/dev/null; then node "$HERE/../tools/install-development.mjs" --all || exit $?; else printf '%s\n' 'Node.js is needed first: https://nodejs.org/en/download'; fi
 fi
-
-for ((i = 0; i < TOTAL; i++)); do
-  printf '\n[%s/%s] %s\n' "$((i + 1))" "$TOTAL" "${NAMES[i]}"
-  printf '%s\n' "------------------------------------------------------------"
-  start=$SECONDS
-  bash "$SCRIPT_DIR/${PATHS[i]}" "${child_args[@]}"
-  CODES[i]=$?
-  DURS[i]=$((SECONDS - start))
-  if [[ ${CODES[i]} -ne 0 ]]; then RESULT=1; fi
-done
-
-printf '\n%s\n' "============================================================"
-printf '  %s\n' "Summary"
-printf '%s\n' "============================================================"
-for ((i = 0; i < TOTAL; i++)); do
-  d=${DURS[i]}
-  dur="$((d / 60))m $(printf '%02d' $((d % 60)))s"
-  if [[ ${CODES[i]} -eq 0 ]]; then
-    printf '  %s%-11s%s%-36s %s\n' "$GREEN" "[OK]" "$RESET" "${NAMES[i]}" "$dur"
-  else
-    printf '  %s%-11s%s%-36s %s   exit code %s\n' "$YELLOW" "[WARNING]" "$RESET" "${NAMES[i]}" "$dur" "${CODES[i]}"
-  fi
-done
-
-if [[ $DRY_RUN -eq 0 ]]; then
-  printf '\n'
-  if reboot_needed; then
-    info "A restart is needed to finish installing updates."
-    if [[ $AUTO -eq 0 && -t 0 ]]; then
-      read -rp "Restart now? [y/N] " ans
-      case "$ans" in
-        y|Y) sudo systemctl reboot ;;
-      esac
-    fi
-  else
-    info "No restart needed."
-  fi
-else
-  printf '\n'
-  info "Restart check skipped in dry run."
+if [[ "$mode" == all || "$mode" == update ]]; then printf '%s\n' 'Update: supported OS, managed applications and firmware; restart requires confirmation.'; fi
+if [[ "$mode" == all || "$mode" == cache ]]; then printf '%s\n' 'Cache: configure shared downloads and isolated project targets.'; fi
+if [[ "$mode" == all || "$mode" == clean ]]; then
+  printf '%s\n' 'Clean: only reviewed idle project dependencies and build outputs; shared downloads are preserved.'
+  if command -v node >/dev/null; then node "$HERE/../tools/devcache.mjs" clean-idle || exit $?; fi
 fi
-
-pause_end
-exit "$RESULT"
+if [[ $apply -eq 0 ]]; then
+  printf '%s\n' 'Preview only. To apply, rerun with an operation followed by --apply. Nothing was changed.'
+  exit 0
+fi
+if [[ ! -t 0 ]]; then printf '%s\n' 'Interactive confirmation required. Nothing was changed.'; exit 1; fi
+read -rp "Type APPLY to run $mode: " answer
+if [[ "$answer" != APPLY ]]; then printf '%s\n' 'Cancelled.'; exit 0; fi
+# On a fresh machine, bootstrap only the approved Node.js runtime using the detected trusted package manager.
+if [[ "$mode" != update ]] && ! command -v node >/dev/null; then
+  if [[ "$mode" != install && "$mode" != all ]]; then printf '%s\n' 'Install Node.js first using install --apply.'; exit 1; fi
+  if command -v apt-get >/dev/null; then sudo apt-get install nodejs || exit $?
+  elif command -v dnf >/dev/null; then sudo dnf install nodejs || exit $?
+  elif command -v pacman >/dev/null; then sudo pacman -S --needed nodejs || exit $?
+  elif command -v zypper >/dev/null; then sudo zypper install nodejs || exit $?
+  else printf '%s\n' 'Install Node.js from https://nodejs.org/en/download and rerun.'; exit 1; fi
+  command -v node >/dev/null || exit 1
+fi
+if [[ "$mode" == all || "$mode" == install ]]; then bash "$HERE/install/first_install.sh" --apply --all || exit $?; fi
+if [[ "$mode" == cache ]]; then bash "$HERE/install/setup_shared_cache.sh" || exit $?; fi
+if [[ "$mode" == all || "$mode" == update ]]; then bash "$HERE/update/update_system.sh" --auto || exit $?; fi
+if [[ "$mode" == all || "$mode" == clean ]]; then node "$HERE/../tools/devcache.mjs" clean-idle --apply || exit $?; fi
+printf '%s\n' 'Finished. Review any manual tool steps and restart if needed.'

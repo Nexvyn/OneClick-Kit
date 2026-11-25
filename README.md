@@ -4,19 +4,19 @@ A Windows and Linux development-machine toolkit for fresh installation, shared c
 
 ## Quick start
 
+**One entry point:** `windows\oneclick.bat` or `bash linux/oneclick.sh`. Running without arguments is a read-only preview. Select `install`, `update`, `clean`, `cache`, or `all`; add `--apply` and explicitly confirm to execute. The `all` operation installs the approved profile, configures shared caches, updates managed software and offers a separate confirmation for eligible idle outputs. It never silently clears browsers, Trash, system files or shared download stores.
+
 | Workflow | Windows | Linux |
 | --- | --- | --- |
-| Fresh machine preview | `windows\install\first_install.bat /dryrun` | `bash linux/install/first_install.sh --dry-run` |
-| Fresh machine apply selected tools | `windows\install\first_install.bat --apply cursor github-cli` | `bash linux/install/first_install.sh --apply github-cli vlc` |
-| All approved supported installers | `windows\install\first_install.bat --apply --all` | `bash linux/install/first_install.sh --apply --all` |
-| Shared cache setup | `windows\install\setup_shared_cache.bat` | `bash linux/install/setup_shared_cache.sh` |
-| Idle project cleanup preview | `windows\clean-idle.bat` | `bash linux/clean-idle.sh` |
-| Idle project cleanup apply | `windows\clean-idle.bat --apply` | `bash linux/clean-idle.sh --apply` |
-| Update-only preview | `windows\update-only.bat` | `bash linux/update-only.sh` |
-| Update-only apply | `windows\update-only.bat --apply` | `bash linux/update-only.sh --apply` |
-| Full maintenance preview | `windows\OneClickKit.exe --dry-run` | `bash linux/oneclick.sh --dry-run` |
+| Preview everything (safe default) | `windows\oneclick.bat` | `bash linux/oneclick.sh` |
+| All operations | `windows\oneclick.bat all --apply` | `bash linux/oneclick.sh all --apply` |
+| Install approved tools | `windows\oneclick.bat install --apply` | `bash linux/oneclick.sh install --apply` |
+| Configure shared caches | `windows\oneclick.bat cache --apply` | `bash linux/oneclick.sh cache --apply` |
+| Preview idle cleanup | `windows\oneclick.bat clean` | `bash linux/oneclick.sh clean` |
+| Apply idle cleanup | `windows\oneclick.bat clean --apply` | `bash linux/oneclick.sh clean --apply` |
+| Update only | `windows\oneclick.bat update --apply` | `bash linux/oneclick.sh update --apply` |
 
-Install Node.js from its official source before using the fresh-machine or project cache commands. Run scripts from a checked-out repository. Review previews before applying changes. On Windows, build the executable once with `windows\build.bat`; rebuild after editing embedded scripts.
+Run from a checked-out repository. On a fresh machine, the confirmed install operation can bootstrap Node.js through a supported package manager; otherwise install it from its official source. Project cache commands require Node.js. On Windows, update and all operations require an elevated terminal; the launcher refuses to proceed without it. No restart is initiated by the unified launcher.
 
 ## Approved tools
 
@@ -90,9 +90,9 @@ Run the update-only launcher with `--apply` to update without invoking cleanup.
 
 Coverage depends on installed package managers and supported devices; independently installed apps may require their own updater. Restart is never automatic without user confirmation.
 
-## Full maintenance
+## Optional legacy system cleanup
 
-The legacy combined workflow remains available with `windows\OneClickKit.exe` or `bash linux/oneclick.sh`. It runs browser and system cleanup, preserves shared developer downloads, then updates. It may close browser processes and clear system junk/Trash or Recycle Bin. Save work and review the dry run first; choose update-only or idle cleanup if you do not want the legacy combined behavior.
+The existing browser/system maintenance helpers remain separate from the unified launcher. They can close browser processes and clear system junk including Trash or Recycle Bin, so use their dry-run options and explicitly review them. The legacy Windows executable, built with `windows\build.bat`, makes no changes when opened without arguments and requires explicit confirmation with `--apply` for its combined maintenance workflow.
 
 ## Development and tests
 

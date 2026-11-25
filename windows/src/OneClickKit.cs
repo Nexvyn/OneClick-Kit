@@ -63,7 +63,8 @@ internal static class Program
 
     private static int Run(string[] args)
     {
-        bool dryRun = false;
+        bool dryRun = true;
+        bool apply = false;
         foreach (string arg in args)
         {
             string a = arg.ToLowerInvariant();
@@ -72,12 +73,27 @@ internal static class Program
                 PrintHelp();
                 return 0;
             }
+            if (a == "--apply") { apply = true; continue; }
             if (a == "--dry-run" || a == "/dryrun")
             {
                 dryRun = true;
             }
         }
 
+        if (args.Length == 0)
+        {
+            Console.WriteLine("Use windows\\oneclick.bat for install, update and idle cleanup. No changes were made.");
+            WaitForKey("Press any key to close...");
+            return 0;
+        }
+        if (apply)
+        {
+            if (Array.Exists(args, a => a.Equals("--dry-run", StringComparison.OrdinalIgnoreCase) || a.Equals("/dryrun", StringComparison.OrdinalIgnoreCase))) return 2;
+            if (Console.IsInputRedirected) return 2;
+            Console.Write("Legacy maintenance may close browsers and clear system junk. Type APPLY to continue: ");
+            if (Console.ReadLine() != "APPLY") return 2;
+            dryRun = false;
+        }
         Console.Title = "OneClick Kit";
         PrintBanner(dryRun);
 
@@ -130,9 +146,10 @@ internal static class Program
     {
         Console.WriteLine("OneClick Kit - browser cache cleanup, Windows junk cleanup, developer cache cleanup and updates.");
         Console.WriteLine();
-        Console.WriteLine("Usage: OneClickKit.exe [--dry-run] [--help]");
+        Console.WriteLine("Usage: OneClickKit.exe [--dry-run|--apply] [--help]");
         Console.WriteLine();
         Console.WriteLine("  --dry-run   Show what would happen. Nothing is changed.");
+        Console.WriteLine("  --apply     Explicitly confirm legacy maintenance.");
         Console.WriteLine("  --help      Show this help (also -h or /?).");
     }
 
