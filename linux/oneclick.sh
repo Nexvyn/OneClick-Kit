@@ -34,9 +34,9 @@ if [[ "$answer" != APPLY ]]; then printf '%s\n' 'Cancelled.'; exit 0; fi
 # On a fresh machine, bootstrap only the approved Node.js runtime using the detected trusted package manager.
 if [[ "$mode" != update ]] && ! command -v node >/dev/null; then
   if [[ "$mode" != install && "$mode" != all ]]; then printf '%s\n' 'Install Node.js first using install --apply.'; exit 1; fi
-  if command -v apt-get >/dev/null; then sudo apt-get install nodejs || exit $?
-  elif command -v dnf >/dev/null; then sudo dnf install nodejs || exit $?
-  elif command -v pacman >/dev/null; then sudo pacman -S --needed nodejs || exit $?
+  if command -v apt-get >/dev/null; then sudo apt-get install nodejs npm || exit $?
+  elif command -v dnf >/dev/null; then sudo dnf install nodejs npm || exit $?
+  elif command -v pacman >/dev/null; then sudo pacman -S --needed nodejs npm || exit $?
   elif command -v zypper >/dev/null; then sudo zypper install nodejs || exit $?
   else printf '%s\n' 'Install Node.js from https://nodejs.org/en/download and rerun.'; exit 1; fi
   command -v node >/dev/null || exit 1

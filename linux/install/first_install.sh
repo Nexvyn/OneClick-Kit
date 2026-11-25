@@ -13,7 +13,11 @@ for arg in "$@"; do
   [[ "$arg" == --apply ]] && apply=1
   args+=("$arg")
 done
-node "$SCRIPT_DIR/../../tools/install-development.mjs" "${args[@]}" || exit $?
+node "$SCRIPT_DIR/../../tools/install-development.mjs" "${args[@]}"
+status=$?
+[[ $status -gt 1 ]] && exit "$status"
 if [[ $apply -eq 1 ]]; then
-  bash "$SCRIPT_DIR/setup_shared_cache.sh" --auto
+  bash "$SCRIPT_DIR/setup_shared_cache.sh" --auto || exit $?
 fi
+
+exit "$status"

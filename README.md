@@ -20,7 +20,7 @@ Run from a checked-out repository. On a fresh machine, the confirmed install ope
 
 ## Approved tools
 
-These are the 25 approved tools in [profiles/development.json](profiles/development.json). The installer never adds other standalone applications.
+These are the 50 approved tools in [profiles/development.json](profiles/development.json). The installer never adds other standalone applications.
 
 | Tool | Selection ID | Type |
 | --- | --- | --- |
@@ -50,7 +50,7 @@ These are the 25 approved tools in [profiles/development.json](profiles/developm
 | [WizTree](https://diskanalyzer.com/) | `wiztree` | Desktop app (Windows desktop only) |
 | [Syncthing](https://syncthing.net/downloads/) | `syncthing` | Desktop app |
 
-Install adapters currently cover selected WinGet packages on Windows and supported apt packages on Linux. Tools without an adapter are reported with official links; project dependencies remain project-pinned, and remote services require separate setup. The all-tools option installs only supported adapters, not every item in the catalog. Required compiler/runtime prerequisites are documented separately by each tool. The old exported application setup is still available through the separate `save_my_apps` and `install_apps` scripts; it is not part of the curated profile.
+Install adapters cover WinGet, Linux distribution package managers, npm, Flatpak and selected official publisher downloads. Tools without an adapter are reported with official links; project dependencies remain project-pinned, and remote services require separate setup. The all-tools option installs only supported adapters, not every item in the catalog. Required compiler/runtime prerequisites are documented separately by each tool. The old exported application setup is still available through the separate `save_my_apps` and `install_apps` scripts; it is not part of the curated profile.
 
 ## Shared development cache
 
@@ -105,3 +105,15 @@ See [development-profile.md](docs/development-profile.md) for tool selection and
 ## License
 
 [MIT](LICENSE)
+
+## Expanded one-click development setup
+
+The approved profile now contains 50 tools. Run `windows\oneclick.bat install --apply` on Windows or `bash linux/oneclick.sh install --apply` on Linux, then confirm once. Existing runtime commands and installed packages are detected before installing; package managers and official publisher releases download and install available tools in sequence. Installer or administrator prompts may still appear. The installer reports unavailable, project-local, platform-specific and failed items separately. No automatic account sign-in, security-policy changes or acceptance of third-party licenses.
+
+**AI CLIs:** Claude Code, Codex, OpenCode, Antigravity and GitHub Copilot.
+
+**Toolchains:** Git, Node.js/npm, Rustup/Rust/Cargo, sccache, pnpm, Bun, Yarn, Deno, Python, uv, Java JDK 21, Kotlin, Swift, Gradle Wrapper, Android SDK, Visual Studio Build Tools, Windows SDK and WebView2 Runtime.
+
+**Utilities:** yt-dlp, PowerShell 7, Handy, Windows Terminal and CrystalDiskInfo.
+
+Project dependencies (Biome, Vitest, Testing Library, Playwright, Tauri and Gradle Wrapper) remain project-pinned. Cloudflare Kitesurf is remote. Windows-only tools are skipped on Linux. Swift, Android SDK, Maestro and unsupported package/distribution combinations may require official setup; no substitute packages are installed. See the [full profile](profiles/development.json).

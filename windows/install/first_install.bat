@@ -22,7 +22,9 @@ shift
 goto :args
 :run
 node "%~dp0..\..\tools\install-development.mjs" %ARGS%
-if errorlevel 1 exit /b 1
-if not defined APPLY exit /b 0
+set "INSTALL_STATUS=%errorlevel%"
+if errorlevel 2 exit /b %INSTALL_STATUS%
+if not defined APPLY exit /b %INSTALL_STATUS%
 call "%~dp0setup_shared_cache.bat" /auto
-exit /b %errorlevel%
+if errorlevel 1 exit /b %errorlevel%
+exit /b %INSTALL_STATUS%

@@ -7,10 +7,10 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const kit = fileURLToPath(new URL('../',import.meta.url));
 const cli = (script,args,env={}) => spawnSync(process.execPath,[path.join(kit,'tools',script),...args],{encoding:'utf8',env:{...process.env,...env}});
-test('approved profile contains 25 unique IDs, excludes backend tools',()=>{
+test('approved profile contains 50 unique IDs, excludes backend tools',()=>{
   const m=JSON.parse(fs.readFileSync(path.join(kit,'profiles/development.json'),'utf8'));
-  assert.equal(m.tools.length,25);
-  assert.equal(new Set(m.tools.map(t=>t.id)).size,25);
+  assert.equal(m.tools.length,50);
+  assert.equal(new Set(m.tools.map(t=>t.id)).size,50);
   assert.ok(!m.tools.some(t=>['bruno','docker','adb','scrcpy','opentelemetry','curl'].includes(t.id)));
 });
 test('installer defaults to preview and rejects unknown selections',()=>{
@@ -69,4 +69,12 @@ test('unified Linux launcher is preview-first and rejects unattended apply',()=>
     assert.ok(!fs.existsSync(path.join(temp,'cache')));
     assert.ok(!fs.existsSync(path.join(temp,'state')));
   } finally { fs.rmSync(temp,{recursive:true,force:true}); }
+});
+
+test('expanded profile previews selected AI CLIs and preserves project-local tools',()=>{
+  const p=cli('install-development.mjs',['--all']);
+  assert.equal(p.status,0,p.stderr);
+  for(const name of ['Claude Code CLI','Codex CLI','OpenCode CLI','Antigravity CLI','GitHub Copilot CLI','Gradle Wrapper','Handy']) assert.ok(p.stdout.includes(name));
+  assert.match(p.stdout,/Vitest: project/);
+  assert.ok(!p.stdout.includes('Raycast'));
 });

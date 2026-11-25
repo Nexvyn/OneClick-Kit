@@ -161,6 +161,171 @@
       "name": "Syncthing",
       "url": "https://syncthing.net/downloads/",
       "kind": "application"
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code CLI",
+      "url": "https://code.claude.com/docs/en/setup",
+      "kind": "cli"
+    },
+    {
+      "id": "codex",
+      "name": "Codex CLI",
+      "url": "https://developers.openai.com/codex/cli",
+      "kind": "cli"
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode CLI",
+      "url": "https://opencode.ai/",
+      "kind": "cli"
+    },
+    {
+      "id": "antigravity",
+      "name": "Antigravity CLI",
+      "url": "https://antigravity.google/docs/cli-getting-started",
+      "kind": "cli"
+    },
+    {
+      "id": "copilot",
+      "name": "GitHub Copilot CLI",
+      "url": "https://github.com/github/copilot-cli",
+      "kind": "cli"
+    },
+    {
+      "id": "git",
+      "name": "Git",
+      "url": "https://git-scm.com/downloads",
+      "kind": "toolchain"
+    },
+    {
+      "id": "rustup",
+      "name": "Rustup / Rust / Cargo",
+      "url": "https://rustup.rs/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "sccache",
+      "name": "sccache",
+      "url": "https://github.com/mozilla/sccache",
+      "kind": "toolchain"
+    },
+    {
+      "id": "pnpm",
+      "name": "pnpm",
+      "url": "https://pnpm.io/installation",
+      "kind": "toolchain"
+    },
+    {
+      "id": "bun",
+      "name": "Bun",
+      "url": "https://bun.sh/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "yarn",
+      "name": "Yarn",
+      "url": "https://yarnpkg.com/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "deno",
+      "name": "Deno",
+      "url": "https://deno.com/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "url": "https://www.python.org/downloads/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "uv",
+      "name": "uv",
+      "url": "https://docs.astral.sh/uv/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "jdk",
+      "name": "Java JDK 21",
+      "url": "https://adoptium.net/",
+      "kind": "toolchain"
+    },
+    {
+      "id": "gradle",
+      "name": "Gradle Wrapper",
+      "url": "https://docs.gradle.org/current/userguide/gradle_wrapper.html",
+      "kind": "project"
+    },
+    {
+      "id": "android-sdk",
+      "name": "Android SDK",
+      "url": "https://developer.android.com/tools",
+      "kind": "toolchain"
+    },
+    {
+      "id": "vs-build-tools",
+      "name": "Visual Studio Build Tools",
+      "url": "https://visualstudio.microsoft.com/downloads/",
+      "kind": "toolchain",
+      "desktopPlatforms": [
+        "win32"
+      ]
+    },
+    {
+      "id": "windows-sdk",
+      "name": "Windows SDK",
+      "url": "https://developer.microsoft.com/windows/downloads/windows-sdk/",
+      "kind": "toolchain",
+      "desktopPlatforms": [
+        "win32"
+      ]
+    },
+    {
+      "id": "webview2",
+      "name": "WebView2 Runtime",
+      "url": "https://developer.microsoft.com/microsoft-edge/webview2/",
+      "kind": "toolchain",
+      "desktopPlatforms": [
+        "win32"
+      ]
+    },
+    {
+      "id": "yt-dlp",
+      "name": "yt-dlp",
+      "url": "https://github.com/yt-dlp/yt-dlp",
+      "kind": "cli"
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShell 7",
+      "url": "https://github.com/PowerShell/PowerShell",
+      "kind": "cli"
+    },
+    {
+      "id": "handy",
+      "name": "Handy",
+      "url": "https://handy.computer/",
+      "kind": "application"
+    },
+    {
+      "id": "windows-terminal",
+      "name": "Windows Terminal",
+      "url": "https://github.com/microsoft/terminal",
+      "kind": "application",
+      "desktopPlatforms": [
+        "win32"
+      ]
+    },
+    {
+      "id": "crystaldiskinfo",
+      "name": "CrystalDiskInfo",
+      "url": "https://crystalmark.info/en/software/crystaldiskinfo/",
+      "kind": "application",
+      "desktopPlatforms": [
+        "win32"
+      ]
     }
   ],
   "cachePolicy": {
