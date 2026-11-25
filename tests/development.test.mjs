@@ -19,6 +19,9 @@ test('installer defaults to preview and rejects unknown selections',()=>{
   assert.match(p.stdout,/VLC/);
   assert.equal(cli('install-development.mjs',['--apply']).status,2);
   assert.equal(cli('install-development.mjs',['unknown']).status,2);
+  assert.equal(cli('install-development.mjs',['--all','vlc']).status,2);
+  assert.equal(cli('install-development.mjs',['--all','--apply','--dry-run']).status,2);
+  assert.equal(cli('install-development.mjs',['--all']).status,0);
 });
 test('project targets are distinct, status and plan are nonmutating, active cleanup refused',()=>{
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'oneclick-test-'));
@@ -33,9 +36,20 @@ test('project targets are distinct, status and plan are nonmutating, active clea
     assert.equal(new Set(Object.values(state).map(p=>p.target)).size,2);
     assert.equal(cli('devcache.mjs',['status'],env).status,0);
     assert.equal(cli('devcache.mjs',['plan'],env).status,0);
+    assert.equal(cli('devcache.mjs',['clean-idle'],env).status,0);
+    assert.notEqual(cli('devcache.mjs',['clean-idle','--apply'],env).status,0);
     assert.notEqual(cli('devcache.mjs',['clean',a,'target','--apply','--confirm-idle'],env).status,0);
     assert.ok(Object.values(state).every(p=>fs.existsSync(p.target)));
     assert.equal(cli('devcache.mjs',['deactivate',a],env).status,0);
     assert.notEqual(cli('devcache.mjs',['clean',a,'target','--apply','--confirm-idle'],env).status,0);
+    const registry=path.join(temp,'state','projects.json');
+    const idle=JSON.parse(fs.readFileSync(registry,'utf8'));
+    const entry=Object.values(idle).find(p=>p.project===a);
+    entry.lastActive=Date.now()-49*3600000;
+    fs.writeFileSync(registry,JSON.stringify(idle));
+    const preview=cli('devcache.mjs',['clean-idle'],env);
+    assert.equal(preview.status,0,preview.stderr);
+    assert.match(preview.stdout,/REVIEW:/);
+    assert.ok(fs.existsSync(entry.target));
   } finally { fs.rmSync(temp,{recursive:true,force:true}); }
 });

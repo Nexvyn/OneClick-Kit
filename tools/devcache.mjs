@@ -3,6 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { createInterface } from 'node:readline/promises';
 
 const manifest = JSON.parse(fs.readFileSync(new URL('../profiles/development.json', import.meta.url), 'utf8'));
 const policy = manifest.cachePolicy;
@@ -106,8 +107,77 @@ function restore(project) {
   const result = spawnSync(command, args, {cwd:project, stdio:'inherit', shell:process.platform === 'win32'});
   if (result.status !== 0) fail('Dependency restore failed. Existing lockfile was not intentionally changed.');
 }
-function main() {
+function reviewedTarget(info, p, kind) {
+  if (p.active || p.pinned) fail('Project must be inactive and unpinned.');
+  if (p.target !== info.target) fail('Cache root changed; review the registered workspace before migrating.');
+  const hours = kind === 'deps' ? policy.idleDependenciesHours : policy.idleBuildHours;
+  if (now() - p.lastActive < hours * 3600000) fail('Project has not reached the idle retention period.');
+  const target = kind === 'deps' ? path.join(info.project,'node_modules') : info.target;
+  if (!exists(target)) return null;
+  const st = fs.lstatSync(target);
+  if (!st.isDirectory() || st.isSymbolicLink() || fs.realpathSync(target) !== target) fail('Refusing non-canonical or linked cleanup target.');
+  if (kind === 'deps') {
+    const tracked = spawnSync('git',['ls-files','--','node_modules'],{cwd:info.project,encoding:'utf8'});
+    if (tracked.status !== 0 || tracked.stdout.trim()) fail('Cannot establish that node_modules is untracked.');
+    const lockfiles = ['pnpm-lock.yaml','package-lock.json','npm-shrinkwrap.json','yarn.lock','bun.lock','bun.lockb'];
+    if (!lockfiles.some(f=>exists(path.join(info.project,f)))) fail('No lockfile; refusing to remove dependencies.');
+  }
+  // Do not traverse separately mounted filesystems.
+  const pending = [target];
+  while (pending.length) {
+    const item = pending.pop();
+    const child = fs.lstatSync(item);
+    if (child.isSymbolicLink()) continue;
+    if (child.dev !== st.dev) fail('Refusing a nested mount in cleanup target.');
+    if (child.isDirectory()) for (const name of fs.readdirSync(item)) pending.push(path.join(item,name));
+  }
+  return target;
+}
+
+async function cleanIdle(apply) {
+  if (apply && !process.stdin.isTTY) fail('Bulk cleanup requires an interactive terminal.');
+  let lock;
+  if (apply) {
+    fs.mkdirSync(stateDir,{recursive:true});
+    try { lock = fs.openSync(lockFile,'wx',0o600); }
+    catch { fail('Another project operation is active.'); }
+  }
+  try {
+    const candidates = [];
+    for (const p of Object.values(readState())) {
+      if (p.active || p.pinned) continue;
+      for (const kind of ['deps','target']) {
+        try {
+          const info = projectInfo(p.project);
+          const target = reviewedTarget(info,p,kind);
+          if (target) { candidates.push({info,p,kind,target}); console.log('REVIEW: ' + target + ' (' + showSize(size(target)) + ' logical)'); }
+        } catch (error) { console.log('SKIP ' + p.project + ' ' + kind + ': ' + error.message); }
+      }
+    }
+    if (!candidates.length) { console.log('No eligible generated directories.'); return; }
+    if (!apply) { console.log('Preview only. Use clean-idle --apply to review and confirm deletion.'); return; }
+    const rl = createInterface({input:process.stdin,output:process.stdout});
+    let answer;
+    try { answer = await rl.question('Stop all external IDEs, builds and watches; back up required artifacts and verify the listed directories contain no custom data. Type DELETE IDLE OUTPUTS to proceed: '); }
+    finally { rl.close(); }
+    if (answer !== 'DELETE IDLE OUTPUTS') { console.log('Cancelled.'); return; }
+    for (const item of candidates) {
+      try {
+        const target = reviewedTarget(item.info,item.p,item.kind);
+        if (target !== item.target) { console.log('SKIP changed target: ' + item.target); continue; }
+        fs.rmSync(target,{recursive:true,force:false});
+        console.log('Removed ' + target);
+      } catch (error) { console.error('SKIP ' + item.target + ': ' + error.message); process.exitCode = 1; }
+    }
+  } finally { if (lock !== undefined) { fs.closeSync(lock); fs.unlinkSync(lockFile); } }
+}
+
+async function main() {
   if (root === path.parse(root).root || root === os.homedir()) fail('Choose a dedicated cache directory.');
+  if (action === 'clean-idle') {
+    if (rest.length || (input && input !== '--apply')) fail('Usage: clean-idle [--apply]');
+    await cleanIdle(input === '--apply'); return;
+  }
   if (action === 'status' || action === 'plan') { status(readState(),action === 'plan'); return; }
   if (!['activate','deactivate','pin','unpin','run','clean'].includes(action)) fail('Usage: devcache.mjs status|plan|activate|deactivate|pin|unpin|run|clean PROJECT [-- command args]');
   const info = projectInfo(input);
@@ -120,22 +190,10 @@ function main() {
     const p = state[info.id] || {...info,active:false,pinned:false,lastActive:now()};
     if (p.target !== info.target) fail('Cache root changed; review the registered workspace before migrating its target.');
     if (action === 'clean') {
-      if (!state[info.id] || p.active || p.pinned) fail('Project must be registered, inactive and unpinned.');
+      if (!state[info.id]) fail('Project must be registered.');
       if (rest.length !== 3 || !['deps','target'].includes(rest[0]) || rest[1] !== '--apply' || rest[2] !== '--confirm-idle') fail('Usage: clean PROJECT deps|target --apply --confirm-idle');
-      const hours = rest[0] === 'deps' ? policy.idleDependenciesHours : policy.idleBuildHours;
-      if (now() - p.lastActive < hours * 3600000) fail('Project has not reached the idle retention period.');
-      const target = rest[0] === 'deps' ? path.join(info.project,'node_modules') : info.target;
-      if (!exists(target)) { console.log('Nothing to clean'); return; }
-      const st = fs.lstatSync(target);
-      if (!st.isDirectory() || st.isSymbolicLink() || fs.realpathSync(target) !== target) fail('Refusing non-canonical or linked cleanup target.');
-      if (rest[0] === 'deps') {
-        const tracked = spawnSync('git',['ls-files','--','node_modules'],{cwd:info.project,encoding:'utf8'});
-        if (tracked.status !== 0 || tracked.stdout.trim()) fail('Cannot establish that node_modules is untracked.');
-        const lockfiles = ['pnpm-lock.yaml','package-lock.json','npm-shrinkwrap.json','yarn.lock','bun.lock','bun.lockb'];
-        if (!lockfiles.some(f=>exists(path.join(info.project,f)))) fail('No lockfile; refusing to remove dependencies.');
-      }
-      // Explicit operator acknowledgement is required because external IDEs and processes are not controlled by this tool.
-      // Refuse linked top-level directories; fs.rm unlinks nested symlinks rather than following them.
+      const target = reviewedTarget(info,p,rest[0]);
+      if (!target) { console.log('Nothing to clean'); return; }
       fs.rmSync(target,{recursive:true,force:false});
       console.log('Removed reviewed generated directory: ' + target);
       return;
@@ -159,4 +217,4 @@ function main() {
     console.log(info.project + ' | target ' + info.target);
   } finally { fs.closeSync(lock); fs.unlinkSync(lockFile); }
 }
-try { main(); } catch (error) { console.error(error.message); process.exitCode = 1; }
+try { await main(); } catch (error) { console.error(error.message); process.exitCode = 1; }

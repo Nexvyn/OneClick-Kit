@@ -12,9 +12,11 @@ const winget = {
 const apt = {'github-cli':'gh',vlc:'vlc','7zip':'7zip',ffmpeg:'ffmpeg',syncthing:'syncthing'};
 const flags = process.argv.slice(2);
 const apply = flags.includes('--apply');
-const ids = flags.filter(a => a !== '--apply' && a !== '--dry-run');
-if (apply && (flags.includes('--dry-run') || !ids.length)) {
-  console.error('Pass explicit tool IDs with --apply. Do not combine with --dry-run.');
+const all = flags.includes('--all');
+const ids = flags.filter(a => !['--apply','--dry-run','--all'].includes(a));
+if (all && ids.length) { console.error('Use --all or selected IDs, not both.'); process.exit(2); }
+if (apply && (flags.includes('--dry-run') || (!ids.length && !all))) {
+  console.error('Pass explicit tool IDs or --all with --apply. Do not combine with --dry-run.');
   process.exit(2);
 }
 const known = new Set(tools.map(t=>t.id));

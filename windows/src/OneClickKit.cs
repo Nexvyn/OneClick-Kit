@@ -145,7 +145,7 @@ internal static class Program
         Console.WriteLine("    1. Close Chrome, Edge, Brave and Firefox and clear their cache");
         Console.WriteLine("       (history, cookies, passwords and logins are kept)");
         Console.WriteLine("    2. Clean Windows temp files, update cache, crash reports and the Recycle Bin");
-        Console.WriteLine("    3. Tidy developer caches: prune pnpm and npm, clear yarn, bun and pip");
+        Console.WriteLine("    3. Preserve shared developer package caches");
         Console.WriteLine("    4. Install Windows, driver, Defender, Microsoft Store and app updates");
         Console.WriteLine();
         Console.WriteLine("  Save your work in open browsers first.");

@@ -1,74 +1,107 @@
 # OneClick Kit
 
-One-click maintenance for Windows and Linux. The scripts are grouped by job:
+A Windows and Linux development-machine toolkit for fresh installation, shared caches, project cleanup and routine maintenance. Designed for small SSDs and reproducible project environments.
 
-| Folder | What it does | Runs in the one-click |
-|---|---|---|
-| `cleanup/` | Browser caches, system junk, developer cache status (preserves downloads) | Yes, first |
-| `update/` | The whole system: OS, drivers and firmware, store apps, all other apps | Yes, second |
-| `install/` | Fresh PC: reinstall your apps, then set up the shared dev cache | No, run `first_install` on a new PC |
+## Quick start
 
+| Workflow | Windows | Linux |
+| --- | --- | --- |
+| Fresh machine preview | `windows\install\first_install.bat /dryrun` | `bash linux/install/first_install.sh --dry-run` |
+| Fresh machine apply selected tools | `windows\install\first_install.bat --apply cursor github-cli` | `bash linux/install/first_install.sh --apply github-cli vlc` |
+| All approved supported installers | `windows\install\first_install.bat --apply --all` | `bash linux/install/first_install.sh --apply --all` |
+| Shared cache setup | `windows\install\setup_shared_cache.bat` | `bash linux/install/setup_shared_cache.sh` |
+| Idle project cleanup preview | `windows\clean-idle.bat` | `bash linux/clean-idle.sh` |
+| Idle project cleanup apply | `windows\clean-idle.bat --apply` | `bash linux/clean-idle.sh --apply` |
+| Update-only preview | `windows\update-only.bat` | `bash linux/update-only.sh` |
+| Update-only apply | `windows\update-only.bat --apply` | `bash linux/update-only.sh --apply` |
+| Full maintenance preview | `windows\OneClickKit.exe --dry-run` | `bash linux/oneclick.sh --dry-run` |
+
+Install Node.js from its official source before using the fresh-machine or project cache commands. Run scripts from a checked-out repository. Review previews before applying changes. On Windows, build the executable once with `windows\build.bat`; rebuild after editing embedded scripts.
+
+## Approved tools
+
+These are the 25 approved tools in [profiles/development.json](profiles/development.json). The installer never adds other standalone applications.
+
+| Tool | Selection ID | Type |
+| --- | --- | --- |
+| [Traycer](https://traycer.ai/download) | `traycer` | Desktop app |
+| [Cursor](https://cursor.com/) | `cursor` | Desktop app |
+| [Moon](https://moonrepo.dev/moon) | `moon` | CLI |
+| [GitHub CLI](https://cli.github.com/) | `github-cli` | CLI |
+| [Biome](https://biomejs.dev/) | `biome` | Project dependency |
+| [Vitest](https://vitest.dev/) | `vitest` | Project dependency |
+| [Testing Library](https://testing-library.com/) | `testing-library` | Project dependency |
+| [Playwright](https://playwright.dev/) | `playwright` | Project dependency |
+| [Lighthouse](https://developer.chrome.com/docs/lighthouse/) | `lighthouse` | On demand |
+| [Tauri](https://tauri.app/) | `tauri` | Project dependency |
+| [Swift](https://swift.org/) | `swift` | Toolchain |
+| [Kotlin](https://kotlinlang.org/) | `kotlin` | Toolchain |
+| [Maestro](https://docs.maestro.dev/) | `maestro` | CLI |
+| [Helium Browser](https://helium.computer/) | `helium` | Desktop app |
+| [Cloudflare Kitesurf](https://developers.cloudflare.com/browser-run/kitesurf/) | `kitesurf` | Remote service |
+| [Node.js](https://nodejs.org/en/download) | `nodejs` | Toolchain |
+| [Notion](https://www.notion.so/desktop) | `notion` | Desktop app (Windows desktop; web on Linux) |
+| [Discord](https://discord.com/download) | `discord` | Desktop app |
+| [VLC](https://www.videolan.org/vlc/) | `vlc` | Desktop app |
+| [7-Zip](https://www.7-zip.org/download.html) | `7zip` | Desktop app |
+| [LocalSend](https://localsend.org/) | `localsend` | Desktop app |
+| [FFmpeg](https://ffmpeg.org/download.html) | `ffmpeg` | CLI |
+| [Figma](https://www.figma.com/downloads/) | `figma` | Desktop app (Windows desktop; web on Linux) |
+| [WizTree](https://diskanalyzer.com/) | `wiztree` | Desktop app (Windows desktop only) |
+| [Syncthing](https://syncthing.net/downloads/) | `syncthing` | Desktop app |
+
+Install adapters currently cover selected WinGet packages on Windows and supported apt packages on Linux. Tools without an adapter are reported with official links; project dependencies remain project-pinned, and remote services require separate setup. The all-tools option installs only supported adapters, not every item in the catalog. Required compiler/runtime prerequisites are documented separately by each tool. The old exported application setup is still available through the separate `save_my_apps` and `install_apps` scripts; it is not part of the curated profile.
+
+## Shared development cache
+
+Shared package downloads (npm, pnpm, Yarn, Bun, pip and uv), eligible Rust compiler artifacts (sccache), and supported Gradle and browser downloads are configured centrally. Project-specific Rust build outputs are isolated by workspace/worktree. The project runner sets the appropriate target directory; normal Cargo invocations retain their existing configuration.
+
+| Budget | Target |
+| --- | --- |
+| Aggregate disposable development data | 35 GiB (warning at 25 GiB) |
+| Cargo target per project | 5 GiB (warning at 4 GiB) |
+| Shared sccache | 5 GiB |
+| Recommended free space | 40 GiB |
+| Idle dependencies | 24 hours before eligible for review |
+| Idle build outputs | 48 hours before eligible for review |
+
+Budgets are retention targets, not hard quotas; active builds must be allowed to complete.
+
+```sh
+node tools/devcache.mjs activate /path/to/project
+node tools/devcache.mjs run /path/to/project -- cargo build
+node tools/devcache.mjs status
+node tools/devcache.mjs deactivate /path/to/project
+node tools/devcache.mjs plan
 ```
-windows/   OneClickKit.exe (after build), build.bat, cleanup/, update/, install/, src/
-linux/     oneclick.sh, cleanup/, update/, install/, lib/
-docs/      shared-cache.md, convert-project-prompt.md
+
+Activation restores missing dependencies from the project's existing lockfile. Pin active or important projects to keep their generated files. Use [shared-cache.md](docs/shared-cache.md) for details and [convert-project-prompt.md](docs/convert-project-prompt.md) for existing projects.
+
+## One-click idle cleanup
+
+The clean-idle launchers preview registered inactive projects and their eligible generated dependency and build directories. With `--apply` they show the exact paths and ask for explicit interactive confirmation. Close editors, dev servers, tests and watches; preserve release artifacts and custom files before confirming. Active, pinned, recently used or unsafe paths are skipped. Shared package download stores are preserved to make restores faster. No unattended bulk deletion.
+
+## Update only
+
+Run the update-only launcher with `--apply` to update without invoking cleanup.
+
+- Windows: Windows Update and supported drivers, Defender definitions, Microsoft Store update requests and WinGet-managed applications.
+- Linux: the detected apt, dnf, pacman or zypper package manager, Flatpak, Snap and supported firmware through fwupd.
+
+Coverage depends on installed package managers and supported devices; independently installed apps may require their own updater. Restart is never automatic without user confirmation.
+
+## Full maintenance
+
+The legacy combined workflow remains available with `windows\OneClickKit.exe` or `bash linux/oneclick.sh`. It runs browser and system cleanup, preserves shared developer downloads, then updates. It may close browser processes and clear system junk/Trash or Recycle Bin. Save work and review the dry run first; choose update-only or idle cleanup if you do not want the legacy combined behavior.
+
+## Development and tests
+
+```sh
+node --test tests/development.test.mjs
 ```
 
-## Windows
+See [development-profile.md](docs/development-profile.md) for tool selection and [shared-cache.md](docs/shared-cache.md) for project lifecycle controls. The executables are not signed; use the source and retain your normal security protections. Never publish private app exports or secrets.
 
-**One click**
+## License
 
-1. Run `windows\build.bat` once. It creates `windows\OneClickKit.exe` with the C# compiler that ships with Windows, so nothing needs to be installed.
-2. Double-click `OneClickKit.exe` and accept the admin prompt.
-3. A 10-second countdown starts. Press any key to start now, or Esc to cancel.
-4. It runs browser cleanup, Windows cleanup, developer cache cleanup, then updates. At the end it shows a summary and asks before restarting.
-
-**What it touches**
-
-- Browser cleanup closes Chrome, Edge, Brave and Firefox and clears their cache for every profile. It never deletes history, cookies, passwords, logins or bookmarks.
-- Windows cleanup clears your temp folder, Windows temp, old Windows Update downloads, the Delivery Optimization cache, crash reports and dumps, Windows logs older than 7 days, and the Recycle Bin. It reports how much space it freed. It does not clear Prefetch, because Windows uses Prefetch to start apps faster.
-- Developer cleanup preserves package download caches. Review managed project storage and cleanup candidates with the project lifecycle tool.
-- Updates cover Microsoft Defender definitions, Windows Update (including drivers and other Microsoft products, through PSWindowsUpdate, which is installed automatically), Microsoft Store apps and every winget app. It never restarts by itself.
-
-**Fresh PC**
-
-1. Install Node.js from its official site if it is not already available.
-2. Run `windows\install\first_install.bat` to preview the approved profile.
-3. Run `windows\install\first_install.bat --apply cursor github-cli` with your chosen tool IDs to install and configure the shared cache. Open a new terminal afterwards.
-
-Each part also runs on its own: `install_apps.bat`, `setup_shared_cache.bat`.
-
-## Linux
-
-Supports apt (Ubuntu, Debian, Mint, Pop!_OS), dnf (Fedora), pacman (Arch, Manjaro) and zypper (openSUSE), plus Flatpak, Snap and fwupd firmware updates.
-
-```bash
-git clone https://github.com/Nexvyn/OneClick-Kit.git
-cd OneClick-Kit
-bash linux/oneclick.sh
-```
-
-Run it as your normal user, not with `sudo`. It asks for your password once. It runs the same four steps as on Windows, using your distro's tools, then shows a summary and asks before restarting.
-
-**Fresh PC:** install Node.js if needed, then run `bash linux/install/first_install.sh` to preview the approved profile. Pass `--apply` and selected tool IDs to install and configure shared caches. To restore a previous export, run the separate app-list scripts explicitly.
-
-## Approved development tools
-
-Use [development-profile.md](docs/development-profile.md) to preview and install the curated profile instead of restoring a previous app export. See [shared-cache.md](docs/shared-cache.md) for isolated Cargo targets and on-demand dependencies.
-
-## Preview first
-
-Every script has a preview mode that changes nothing and prints what it would do:
-
-- Windows: `OneClickKit.exe --dry-run`, or any script with `/dryrun`, for example `windows\cleanup\clean_windows_junk.bat /dryrun`
-- Linux: `bash linux/oneclick.sh --dry-run`, or any script with `--dry-run`
-
-## Run one step
-
-Every script also works on its own. Double-click a `.bat` file, or run `bash linux/<folder>/<script>.sh`.
-
-## Notes
-
-- The Windows scripts are packed inside the exe, so run `build.bat` again after you edit one.
-- The exe is unsigned. Windows SmartScreen or antivirus may warn about it if it is downloaded or shared. Building it yourself avoids that.
-- This repo is public. If you commit your app lists, anyone can see which apps you use.
+[MIT](LICENSE)

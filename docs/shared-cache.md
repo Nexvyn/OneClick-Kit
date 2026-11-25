@@ -36,3 +36,7 @@ Only use it after checking that all external processes have stopped, the directo
 The ordinary developer-cache maintenance step preserves package downloads. Use tool-specific approved pruning only after reviewing space and dependencies. Do not disable antivirus scanning for executable dependency caches. Keep different operating systems and toolchains isolated, and do not sync live caches.
 
 See [development-profile.md](development-profile.md) for the approved tools and installation workflow.
+
+## Bulk idle cleanup
+
+Run `node tools/devcache.mjs clean-idle` to preview eligible registered project outputs. Run `node tools/devcache.mjs clean-idle --apply` interactively to review exact paths and confirm with the phrase shown. Platform launchers are available in the repository root platform directories. This never empties the shared download stores, and skips active/pinned projects. External processes must be stopped first; the tool cannot establish their state automatically.

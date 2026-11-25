@@ -22,7 +22,7 @@ printf '\n%s\n' "  This will:"
 printf '%s\n' "    1. Close Chrome, Chromium, Brave, Edge and Firefox and clear their cache"
 printf '%s\n' "       (history, cookies, passwords and logins are kept)"
 printf '%s\n' "    2. Clean package caches, old logs, old temp files, crash reports, thumbnails and Trash"
-printf '%s\n' "    3. Tidy developer caches: prune pnpm and npm, clear yarn, bun and pip"
+printf '%s\n' "    3. Preserve shared developer package caches"
 printf '%s\n' "    4. Install system, Flatpak, Snap and firmware updates"
 
 countdown 10 "Save your work in open browsers first."
