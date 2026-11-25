@@ -4,7 +4,7 @@ One-click maintenance for Windows and Linux. The scripts are grouped by job:
 
 | Folder | What it does | Runs in the one-click |
 |---|---|---|
-| `cleanup/` | Browser caches, system junk, developer caches (prunes pnpm and npm, clears yarn, bun, pip) | Yes, first |
+| `cleanup/` | Browser caches, system junk, developer cache status (preserves downloads) | Yes, first |
 | `update/` | The whole system: OS, drivers and firmware, store apps, all other apps | Yes, second |
 | `install/` | Fresh PC: reinstall your apps, then set up the shared dev cache | No, run `first_install` on a new PC |
 
@@ -27,14 +27,14 @@ docs/      shared-cache.md, convert-project-prompt.md
 
 - Browser cleanup closes Chrome, Edge, Brave and Firefox and clears their cache for every profile. It never deletes history, cookies, passwords, logins or bookmarks.
 - Windows cleanup clears your temp folder, Windows temp, old Windows Update downloads, the Delivery Optimization cache, crash reports and dumps, Windows logs older than 7 days, and the Recycle Bin. It reports how much space it freed. It does not clear Prefetch, because Windows uses Prefetch to start apps faster.
-- Developer cleanup runs `pnpm store prune` (removes only packages no project uses), `npm cache verify` (removes only broken or unused entries), `yarn cache clean`, `bun pm cache rm` and `pip cache purge` for the tools you have. The npm cache and pnpm store can be your [shared cache](docs/shared-cache.md), so they are only pruned, never wiped.
+- Developer cleanup preserves package download caches. Review managed project storage and cleanup candidates with the project lifecycle tool.
 - Updates cover Microsoft Defender definitions, Windows Update (including drivers and other Microsoft products, through PSWindowsUpdate, which is installed automatically), Microsoft Store apps and every winget app. It never restarts by itself.
 
 **Fresh PC**
 
-1. On your old PC, run `windows\install\save_my_apps.bat`. It writes `apps.json` next to the script. Commit that file if you want it in the repo.
-2. On the new PC, clone the repo and run `windows\install\first_install.bat`. It installs the apps from `apps.json`, then runs `setup_shared_cache.bat`. That creates the [shared dev cache](docs/shared-cache.md), installs `sccache` and `pnpm` if they are missing, and points pnpm, npm, Cargo, sccache, Gradle and Puppeteer at it.
-3. Restart the PC, then run `pnpm install` in each project. To move an existing project onto the shared cache, paste [convert-project-prompt.md](docs/convert-project-prompt.md) into that project's AI.
+1. Install Node.js from its official site if it is not already available.
+2. Run `windows\install\first_install.bat` to preview the approved profile.
+3. Run `windows\install\first_install.bat --apply cursor github-cli` with your chosen tool IDs to install and configure the shared cache. Open a new terminal afterwards.
 
 Each part also runs on its own: `install_apps.bat`, `setup_shared_cache.bat`.
 
@@ -50,7 +50,11 @@ bash linux/oneclick.sh
 
 Run it as your normal user, not with `sudo`. It asks for your password once. It runs the same four steps as on Windows, using your distro's tools, then shows a summary and asks before restarting.
 
-**Fresh PC:** run `bash linux/install/save_my_apps.sh` on the old machine and commit the `packages-*.txt`, `flatpak.txt` and `snap.txt` files if you want them in the repo. On the new machine run `bash linux/install/first_install.sh`. It installs the apps, then sets up the [shared dev cache](docs/shared-cache.md) (settings go in a marked block in `~/.profile`).
+**Fresh PC:** install Node.js if needed, then run `bash linux/install/first_install.sh` to preview the approved profile. Pass `--apply` and selected tool IDs to install and configure shared caches. To restore a previous export, run the separate app-list scripts explicitly.
+
+## Approved development tools
+
+Use [development-profile.md](docs/development-profile.md) to preview and install the curated profile instead of restoring a previous app export. See [shared-cache.md](docs/shared-cache.md) for isolated Cargo targets and on-demand dependencies.
 
 ## Preview first
 

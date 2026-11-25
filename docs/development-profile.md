@@ -1,24 +1,19 @@
 # Development profile
 
-The approved tool list is maintained in [profiles/development.json](../profiles/development.json). It contains the 25 selected tools and no additional applications. Project dependencies are installed only within the relevant project; remote-only services are references, not desktop installs.
+[profiles/development.json](../profiles/development.json) contains the 25 approved tools and retention settings.
 
-With Node.js installed, preview the profile:
+With Node.js installed:
 
 ```sh
 node tools/plan-development.mjs
-node tools/plan-development.mjs traycer cursor moon helium
+node tools/install-development.mjs
+node tools/install-development.mjs --apply cursor github-cli
 ```
 
-The planner is read-only. It rejects unknown tool IDs, prints the official sources and indicates desktop availability for explicitly restricted applications. The existing first-install workflow is unchanged by this initial PR. Actual installation adapters and project lifecycle commands are follow-up implementation work under #1.
+The first two commands preview available choices without installing anything. Installation requires explicit tool IDs and --apply. The installer uses exact approved WinGet IDs or available distribution packages through apt; existing matching installs are skipped. Tools lacking verified adapters are listed with their official links for manual installation. Project-specific packages, toolchains needing additional prerequisites, and remote services are not installed globally. No extra standalone applications are added to the manifest.
 
-## Compact cache policy
+For cache setup and project commands, see [shared-cache.md](shared-cache.md).
 
-- Total disposable development data: 35 GiB retention target, warning at 25 GiB, aim for 40 GiB free.
-- Cargo target and intermediate outputs: separate workspace/worktree directories, warning at 4 GiB, retention target 5 GiB per workspace.
-- Shared sccache: 5 GiB.
-- Idle workspace dependency cleanup eligibility after 24 hours; generated build outputs after 48 hours.
-- Budgets are soft targets. Never interrupt active builds or delete unreviewed data.
-- Preserve lockfiles and use the existing package manager. Keep active and pinned workspaces intact.
-- Shared download caches remain separate by package manager. Keep package links on the same filesystem where supported.
+The existing exported-app restore remains a separate opt-in workflow. Do not use it if you want only the curated profile.
 
-No cleanup or installation is executed by the planner. Existing cache settings remain unchanged until the migration implementation is reviewed.
+The first-install scripts now use the curated profile by default. With no arguments they preview; pass --apply plus specific tool IDs to apply and configure the shared cache. Install Node.js from its official source first if it is missing. To restore an exported app list, use the existing install_apps script explicitly.
