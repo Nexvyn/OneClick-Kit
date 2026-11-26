@@ -27,13 +27,45 @@ node tools/devcache.mjs clean /path/to/project deps --apply --confirm-idle
 node tools/devcache.mjs clean /path/to/project target --apply --confirm-idle
 ```
 
-Only use it after checking that all external processes have stopped, the directory has no manual edits, and any required release artifacts are backed up. It refuses active/pinned projects, recent projects, linked top-level directories and tracked dependencies. There is no unattended cleanup.
+Only use it after checking that all external processes have stopped, the directory has no manual edits, and any required release artifacts are backed up. It refuses active/pinned projects, recent projects, linked top-level directories and tracked dependencies. The scheduled Auto-clean (see the main README) runs `clean-idle --unattended`, which keeps every one of these checks and only removes outputs of idle, unpinned projects.
 
 ## Retention policy
 
 25 GiB warning; 35 GiB total retention target; aim for 40 GiB free. Cargo per workspace: warning at 4 GiB, target 5 GiB. Shared sccache: 5 GiB. Idle dependencies are eligible after 24 hours; build outputs after 48 hours. Allow exceptions for active builds. These are soft limits, not quotas.
 
-The clean operation prunes or clears package downloads as listed under bulk idle cleanup. Review space and dependencies before running it. Do not disable antivirus scanning for executable dependency caches. Keep different operating systems and toolchains isolated, and do not sync live caches.
+The clean operation prunes or clears package downloads as listed under bulk idle cleanup. Review space and dependencies before running it. Keep different operating systems and toolchains isolated, and do not sync live caches.
+
+## Rules for AI agents
+
+- Keep projects on the same drive as the shared cache. pnpm hard links do not work across drives; pnpm then copies files and wastes space.
+- Never delete the shared cache or anything in it without asking the owner.
+- Do not create a per-project `.pnpm-store`, and do not set `target-dir` in a project's `.cargo/config.toml`. Use `devcache run` so the project gets its own folder under `cargo-targets`.
+- Do not set `CARGO_TARGET_DIR`, `GRADLE_USER_HOME`, `TMP` or `TEMP` for a single command; the setup already points them to the right place.
+- To convert a project to pnpm, use [convert-project-prompt.md](convert-project-prompt.md).
+
+## If the cache folder is moved
+
+Run the setup again with the new path, then open a new terminal and run `pnpm install` in each project:
+
+```sh
+windows\install\setup_shared_cache.bat "D:\new\path\shared-cache"
+bash linux/install/setup_shared_cache.sh /new/path/shared-cache
+```
+
+If the folder was only deleted, run the setup again with the same path. Everything in it is rebuilt on the next install or build.
+
+## Optional: Microsoft Defender exclusion (not applied by the kit)
+
+Defender scans every file as it is written. A `pnpm install` writes tens of thousands of small files, so installs can be slow. You can exclude the cache folder. Open PowerShell as administrator:
+
+```powershell
+Add-MpPreference -ExclusionPath "$env:ONECLICK_CACHE_ROOT"
+```
+
+- Check: `Get-MpPreference | Select-Object -ExpandProperty ExclusionPath`
+- Undo: `Remove-MpPreference -ExclusionPath "$env:ONECLICK_CACHE_ROOT"`
+- Trade-off: a harmful package downloaded into the cache is no longer caught when it is written. Only do this if slow installs are a real problem. Never exclude your whole user folder or a drive.
+- If the cache folder moves, remove the old exclusion and add the new path.
 
 See [development-profile.md](development-profile.md) for the approved tools and installation workflow.
 

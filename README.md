@@ -100,7 +100,7 @@ Activation restores missing dependencies from the project's existing lockfile. P
 
 ## One-click idle cleanup
 
-The clean-idle launchers preview registered inactive projects and their eligible generated dependency and build directories. With `--apply` they show the exact paths and ask for explicit interactive confirmation. Close editors, dev servers, tests and watches; preserve release artifacts and custom files before confirming. Active, pinned, recently used or unsafe paths are skipped. The clean operation also prunes download caches (pnpm store prune, npm cache verify, uv cache prune, and yarn, bun and pip cache clean). No unattended bulk deletion.
+The clean-idle launchers preview registered inactive projects and their eligible generated dependency and build directories. With `--apply` they show the exact paths and ask for explicit interactive confirmation. Close editors, dev servers, tests and watches; preserve release artifacts and custom files before confirming. Active, pinned, recently used or unsafe paths are skipped. The clean operation also prunes download caches (pnpm store prune, npm cache verify, uv cache prune, and yarn, bun and pip cache clean). Auto-clean runs the same idle cleanup on a schedule with all of these safety checks; it never removes active, pinned or recently used projects.
 
 ## Update only
 
@@ -170,7 +170,7 @@ The Windows update step creates a System Restore point first (Checkpoint-Compute
 
 ## Defender exclusion (optional)
 
-See [docs/shared-cache.md](docs/shared-cache.md) for the optional Microsoft Defender exclusion for the shared cache.
+Not applied by the kit. If pnpm installs are slow, [docs/shared-cache.md](docs/shared-cache.md#optional-microsoft-defender-exclusion-not-applied-by-the-kit) shows how to exclude only the shared cache folder, how to undo it, and the trade-off.
 
 ## Optional legacy system cleanup
 
