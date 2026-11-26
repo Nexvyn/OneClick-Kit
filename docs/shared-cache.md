@@ -16,7 +16,7 @@ node tools/devcache.mjs deactivate /path/to/project
 node tools/devcache.mjs plan
 ```
 
-The run command gives each canonical workspace or worktree a distinct hashed target directory under the configured cache root. Use the actual Cargo workspace root (not a member crate). A plain Cargo invocation uses its existing configuration; configure your IDE tasks to use the wrapper if you want the centralized project-specific directory. Existing project configuration is not rewritten. If a project overrides Cargo's intermediate build directory, review it separately.
+The run command gives each canonical workspace or worktree its own target directory at `shared-cache/cargo-targets/<project>/target`, named after the project folder. If two projects share a folder name, the second gets `<project>-<6 hex chars>`; a registered project keeps its folder. Use the actual Cargo workspace root (not a member crate). A plain Cargo invocation uses its existing configuration; configure your IDE tasks to use the wrapper if you want the centralized project-specific directory. Existing project configuration is not rewritten. If a project overrides Cargo's intermediate build directory, review it separately.
 
 Activate restores missing dependencies using the existing lockfile and package manager; existing installations are preserved. Pin/unpin controls retention. Deactivate only after stopping external IDEs, builds, tests and watchers. The registry tracks cooperating commands, not all processes. The run wrapper holds a lock until the child command exits.
 
@@ -33,10 +33,10 @@ Only use it after checking that all external processes have stopped, the directo
 
 25 GiB warning; 35 GiB total retention target; aim for 40 GiB free. Cargo per workspace: warning at 4 GiB, target 5 GiB. Shared sccache: 5 GiB. Idle dependencies are eligible after 24 hours; build outputs after 48 hours. Allow exceptions for active builds. These are soft limits, not quotas.
 
-The ordinary developer-cache maintenance step preserves package downloads. Use tool-specific approved pruning only after reviewing space and dependencies. Do not disable antivirus scanning for executable dependency caches. Keep different operating systems and toolchains isolated, and do not sync live caches.
+The clean operation prunes or clears package downloads as listed under bulk idle cleanup. Review space and dependencies before running it. Do not disable antivirus scanning for executable dependency caches. Keep different operating systems and toolchains isolated, and do not sync live caches.
 
 See [development-profile.md](development-profile.md) for the approved tools and installation workflow.
 
 ## Bulk idle cleanup
 
-Run `node tools/devcache.mjs clean-idle` to preview eligible registered project outputs. Run `node tools/devcache.mjs clean-idle --apply` interactively to review exact paths and confirm with the phrase shown. Platform launchers are available in the repository root platform directories. This never empties the shared download stores, and skips active/pinned projects. External processes must be stopped first; the tool cannot establish their state automatically.
+Run `node tools/devcache.mjs clean-idle` to preview eligible registered project outputs. Run `node tools/devcache.mjs clean-idle --apply` interactively to review exact paths and confirm with the phrase shown. Platform launchers are available in the repository root platform directories. This command never touches download caches. The clean operation (`oneclick clean --apply`) removes idle project node_modules and Cargo targets after typed confirmation, then prunes download caches: `pnpm store prune`, `npm cache verify`, `uv cache prune`, and `yarn cache clean`, `bun pm cache rm`, `pip cache purge`. It skips active/pinned projects. External processes must be stopped first; the tool cannot establish their state automatically.

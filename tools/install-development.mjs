@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { ensureAptUpdated, ensureFlatpak } from './linux-setup.mjs';
 
 const {tools} = JSON.parse(readFileSync(new URL('../profiles/development.json', import.meta.url), 'utf8'));
 const winget = {
@@ -42,6 +43,13 @@ if (!['win32','linux'].includes(process.platform)) { console.error('Unsupported 
 const win = process.platform==='win32';
 const run = (cmd,args,quiet=false) => spawnSync(cmd,args,{encoding:'utf8',stdio:quiet?'pipe':'inherit',shell:false});
 const has = cmd => run(win?'where.exe':'which',[cmd],true).status===0;
+// On Windows, python is only "present" when where.exe finds a real install outside the Store stub folder.
+const hasWindowsPython = cmd => {
+  const found = run('where.exe',[cmd],true);
+  if (found.status!==0) return false;
+  return String(found.stdout||'').split(/\r?\n/).some(line=>line.trim()&&!/\\WindowsApps\\/i.test(line));
+};
+const present = cmd => win&&(cmd==='python'||cmd==='python3') ? hasWindowsPython(cmd) : has(cmd);
 const npmRun = (args,quiet=false) => win
   ? run('cmd.exe',['/d','/s','/c','npm.cmd '+args.join(' ')],quiet)
   : run('npm',args,quiet);
@@ -55,10 +63,10 @@ function report(t,status,detail) { result[status].push(t.name); console.log(t.na
 function native(t) {
   const id=winget[t.id];
   if (!id || !has('winget')) return null;
-  const installed=run('winget',['list','--id',id,'--exact','--source','winget'],true);
+  const installed=run('winget',['list','--id',id,'--exact','--source','winget','--accept-source-agreements'],true);
   if(installed.status===0&&installed.stdout.includes(id)) return 'existing';
-  if (run('winget',['show','--id',id,'--exact','--source','winget'],true).status!==0) return null;
-  const args=['install','--id',id,'--exact','--source','winget'];
+  if (run('winget',['show','--id',id,'--exact','--source','winget','--accept-source-agreements'],true).status!==0) return null;
+  const args=['install','--id',id,'--exact','--source','winget','--accept-source-agreements','--accept-package-agreements'];
   if(t.id==='vs-build-tools') args.push('--override','--passive --wait --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended');
   return run('winget',args).status===0?'installed':'failed';
 }
@@ -68,6 +76,7 @@ function distro(t) {
   const check=cmd==='apt-get'?['dpkg-query',['-W','-f=${Status}',id]]:cmd==='pacman'?['pacman',['-Q',id]]:['rpm',['-q',id]];
   const installed=run(...check,true);
   if(installed.status===0&&(cmd!=='apt-get'||installed.stdout.trim()==='install ok installed')) return 'existing';
+  if(cmd==='apt-get') ensureAptUpdated();
   const query=cmd==='apt-get'?['apt-cache',['show',id]]:cmd==='pacman'?['pacman',['-Si',id]]:cmd==='dnf'?['dnf',['info',id]]:['zypper',['info',id]];
   const found=run(...query,true); if(found.status!==0||!found.stdout.trim()) return null;
   const args=cmd==='pacman'?['-S','--needed',id]:['install',id];
@@ -138,7 +147,7 @@ for(const t of selected) {
     const version=run(win?'cmd.exe':'opencode',win?['/d','/c','opencode --version']:['--version'],true);
     if(!/(?:^|\s)[2-9]\d*\.\d+/.test(version.stdout||'')) {report(t,'deferred','existing OpenCode version needs review before replacing it');continue;}
   }
-  if(probes[t.id]&&has(probes[t.id])) {report(t,'existing','already on PATH');continue;}
+  if(probes[t.id]&&present(probes[t.id])) {report(t,'existing','already on PATH');continue;}
   if(t.id==='python'&&!win&&has('python3')) {report(t,'existing','Python 3 already on PATH');continue;}
   if(t.id==='nodejs') {report(t,'existing','using the Node runtime running this installer');continue;}
   let status=win?native(t):distro(t);
@@ -146,7 +155,7 @@ for(const t of selected) {
     const found=npmRun(['list','-g','--depth=0',npm[t.id]],true);
     status=found.status===0?'existing':npmRun(['install','-g',npm[t.id]]).status===0?'installed':'failed';
   }
-  if(!status&&!win&&flatpak[t.id]&&has('flatpak')) {
+  if(!status&&!win&&flatpak[t.id]&&ensureFlatpak(manager?.[0])) {
     const id=flatpak[t.id];
     if(run('flatpak',['info',id],true).status===0) status='existing';
     else if(run('flatpak',['remote-info','flathub',id],true).status===0)

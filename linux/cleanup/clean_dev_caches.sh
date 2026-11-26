@@ -1,3 +1,53 @@
 #!/usr/bin/env bash
-# Preserve shared downloads by default; cleanup is reviewed separately.
-printf '%s\n' 'Developer caches preserved. Run the project cache status tool to review storage.' 'No package downloads, dependencies or build outputs have been removed.'
+# Developer Cache Cleanup - npm, pnpm, yarn, bun, pip and uv caches (user level, no sudo).
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+. "$SCRIPT_DIR/../lib/common.sh"
+parse_args "$@"
+refuse_sudo
+
+# dev_clean TOOL CMD ARGS... - runs a cache command; failures are info only.
+dev_clean() {
+  local tool="$1"
+  shift
+  if ! have "$tool"; then
+    info "$tool not found, skipped"
+    return 0
+  fi
+  if ! run "$@"; then
+    info "$tool cache clean did not finish (ignored)"
+  fi
+  return 0
+}
+
+banner "Developer Cache Cleanup"
+before="$(free_mb)"
+
+step 1 1 "Developer package caches"
+# The npm cache, pnpm store and uv cache may be shared, so they are only pruned, never wiped.
+dev_clean npm npm cache verify
+dev_clean pnpm pnpm store prune
+dev_clean yarn yarn cache clean
+dev_clean bun bun pm cache rm
+if have pip3; then
+  run pip3 cache purge || info "pip3 cache purge did not finish (ignored)"
+elif have pip; then
+  run pip cache purge || info "pip cache purge did not finish (ignored)"
+else
+  info "pip not found, skipped"
+fi
+dev_clean uv uv cache prune
+
+after="$(free_mb)"
+if [[ "$before" =~ ^[0-9]+$ && "$after" =~ ^[0-9]+$ ]]; then
+  freed=$((after - before))
+  if (( freed < 0 )); then freed=0; fi
+  info "Freed about ${freed} MB on /"
+else
+  info "Free space could not be measured."
+fi
+
+printf '\n%s\n' "Developer cache cleanup finished. Projects re-download packages the next time they install."
+pause_end
+exit "$RESULT"

@@ -28,6 +28,18 @@ powershell -NoProfile -Command "Start-Process -FilePath '%SELF%' -Verb RunAs"
 exit /b
 :admin_ok
 
+rem Restore point before any update is installed. Never aborts the run.
+if defined DRYRUN goto :restore_dry
+goto :restore_run
+:restore_dry
+echo [dry run] would create a restore point
+goto :restore_done
+:restore_run
+echo Creating a restore point...
+powershell -NoProfile -Command "try { Checkpoint-Computer -Description 'OneClick Kit before updates' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop; exit 0 } catch { exit 1 }"
+if errorlevel 1 echo WARNING: could not create a restore point. System Protection may be off, or a restore point was made in the last 24 hours. Continuing.
+:restore_done
+
 echo.
 echo [1/5] Checking the PSWindowsUpdate module...
 if defined DRYRUN goto :psmod_dry

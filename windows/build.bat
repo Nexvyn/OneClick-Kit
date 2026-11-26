@@ -14,7 +14,7 @@ if not exist "%CSC%" (
 
 rem Check that every input file exists.
 set "MISSING="
-for %%F in (cleanup\clean_browser_cache.bat cleanup\clean_windows_junk.bat cleanup\clean_dev_caches.bat update\update_system.bat src\OneClickKit.cs src\app.manifest) do (
+for %%F in (src\OneClickKit.cs src\app.manifest) do (
   if not exist "%%~F" (
     echo ERROR: missing file %%~F
     set "MISSING=1"
@@ -23,7 +23,7 @@ for %%F in (cleanup\clean_browser_cache.bat cleanup\clean_windows_junk.bat clean
 if defined MISSING goto :end
 
 echo Compiling OneClickKit.exe ...
-"%CSC%" /nologo /target:exe /platform:anycpu /optimize+ /out:OneClickKit.exe /win32manifest:src\app.manifest /resource:cleanup\clean_browser_cache.bat,clean_browser_cache.bat /resource:cleanup\clean_windows_junk.bat,clean_windows_junk.bat /resource:cleanup\clean_dev_caches.bat,clean_dev_caches.bat /resource:update\update_system.bat,update_system.bat src\OneClickKit.cs
+"%CSC%" /nologo /target:exe /platform:anycpu /optimize+ /out:OneClickKit.exe /win32manifest:src\app.manifest src\OneClickKit.cs
 set "RC=%errorlevel%"
 
 if not "%RC%"=="0" (

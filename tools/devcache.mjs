@@ -29,14 +29,34 @@ function writeState(state) {
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2) + '\n', {mode: 0o600});
   fs.renameSync(tmp, stateFile);
 }
-function projectInfo(input) {
+const cargoRoot = path.join(root,'cargo-targets');
+const sameName = (a,b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+function safeProjectName(project) {
+  const name = path.basename(project).replace(/[^A-Za-z0-9._-]/g,'-').replace(/^[-.]+|[-.]+$/g,'');
+  return name || 'project';
+}
+function projectInfo(input, state = {}) {
   if (!input) fail('Pass an explicit project root.');
   const project = fs.realpathSync(input);
   if (!fs.statSync(project).isDirectory() || !['package.json','Cargo.toml','settings.gradle','settings.gradle.kts'].some(f => exists(path.join(project,f)))) fail('Not a recognized project root: ' + project);
   if (project === root || project.startsWith(root + path.sep)) fail('Project cannot be inside the cache.');
   const key = process.platform === 'win32' ? project.toLowerCase() : project;
   const id = hash(key).slice(0, 24);
-  return {project,id,target:path.join(root,'cargo-targets',id)};
+  const registered = state[id];
+  if (registered && typeof registered.target === 'string' && registered.target.startsWith(cargoRoot + path.sep)) {
+    return {project,id,target:registered.target};
+  }
+  const name = safeProjectName(project);
+  const taken = other => Object.entries(state).some(([otherId, p]) => otherId !== id && p && typeof p.target === 'string' && sameName(p.target, path.join(cargoRoot,other,'target')));
+  const finalName = taken(name) ? name + '-' + id.slice(0,6) : name;
+  return {project,id,target:path.join(cargoRoot,finalName,'target')};
+}
+// Removes <root>/cargo-targets/<name> once its only content, the target, is gone. Never touches node_modules.
+function removeEmptyTargetParent(target, kind) {
+  if (kind !== 'target') return;
+  const parent = path.dirname(target);
+  if (path.dirname(parent) !== cargoRoot) return;
+  try { fs.rmdirSync(parent); } catch {}
 }
 function size(target, seen = new Set()) {
   let total = 0;
@@ -134,38 +154,42 @@ function reviewedTarget(info, p, kind) {
   return target;
 }
 
-async function cleanIdle(apply) {
-  if (apply && !process.stdin.isTTY) fail('Bulk cleanup requires an interactive terminal.');
+async function cleanIdle(mode) {
+  if (mode === 'apply' && !process.stdin.isTTY) fail('Bulk cleanup requires an interactive terminal.');
   let lock;
-  if (apply) {
+  if (mode !== 'preview') {
     fs.mkdirSync(stateDir,{recursive:true});
     try { lock = fs.openSync(lockFile,'wx',0o600); }
     catch { fail('Another project operation is active.'); }
   }
   try {
     const candidates = [];
-    for (const p of Object.values(readState())) {
+    const state = readState();
+    for (const p of Object.values(state)) {
       if (p.active || p.pinned) continue;
       for (const kind of ['deps','target']) {
         try {
-          const info = projectInfo(p.project);
+          const info = projectInfo(p.project, state);
           const target = reviewedTarget(info,p,kind);
           if (target) { candidates.push({info,p,kind,target}); console.log('REVIEW: ' + target + ' (' + showSize(size(target)) + ' logical)'); }
         } catch (error) { console.log('SKIP ' + p.project + ' ' + kind + ': ' + error.message); }
       }
     }
-    if (!candidates.length) { console.log('No eligible generated directories.'); return; }
-    if (!apply) { console.log('Preview only. Use clean-idle --apply to review and confirm deletion.'); return; }
-    const rl = createInterface({input:process.stdin,output:process.stdout});
-    let answer;
-    try { answer = await rl.question('Stop all external IDEs, builds and watches; back up required artifacts and verify the listed directories contain no custom data. Type DELETE IDLE OUTPUTS to proceed: '); }
-    finally { rl.close(); }
-    if (answer !== 'DELETE IDLE OUTPUTS') { console.log('Cancelled.'); return; }
+    if (!candidates.length) { console.log(mode === 'unattended' ? 'Nothing needs cleaning.' : 'No eligible generated directories.'); return; }
+    if (mode === 'preview') { console.log('Preview only. Use clean-idle --apply to review and confirm deletion.'); return; }
+    if (mode === 'apply') {
+      const rl = createInterface({input:process.stdin,output:process.stdout});
+      let answer;
+      try { answer = await rl.question('Stop all external IDEs, builds and watches; back up required artifacts and verify the listed directories contain no custom data. Type DELETE IDLE OUTPUTS to proceed: '); }
+      finally { rl.close(); }
+      if (answer !== 'DELETE IDLE OUTPUTS') { console.log('Cancelled.'); return; }
+    }
     for (const item of candidates) {
       try {
         const target = reviewedTarget(item.info,item.p,item.kind);
         if (target !== item.target) { console.log('SKIP changed target: ' + item.target); continue; }
         fs.rmSync(target,{recursive:true,force:false});
+        removeEmptyTargetParent(target, item.kind);
         console.log('Removed ' + target);
       } catch (error) { console.error('SKIP ' + item.target + ': ' + error.message); process.exitCode = 1; }
     }
@@ -175,18 +199,18 @@ async function cleanIdle(apply) {
 async function main() {
   if (root === path.parse(root).root || root === os.homedir()) fail('Choose a dedicated cache directory.');
   if (action === 'clean-idle') {
-    if (rest.length || (input && input !== '--apply')) fail('Usage: clean-idle [--apply]');
-    await cleanIdle(input === '--apply'); return;
+    if (rest.length || (input && input !== '--apply' && input !== '--unattended')) fail('Usage: clean-idle [--apply|--unattended]');
+    await cleanIdle(input === '--apply' ? 'apply' : input === '--unattended' ? 'unattended' : 'preview'); return;
   }
   if (action === 'status' || action === 'plan') { status(readState(),action === 'plan'); return; }
   if (!['activate','deactivate','pin','unpin','run','clean'].includes(action)) fail('Usage: devcache.mjs status|plan|activate|deactivate|pin|unpin|run|clean PROJECT [-- command args]');
-  const info = projectInfo(input);
   fs.mkdirSync(stateDir,{recursive:true});
   let lock;
   try { lock = fs.openSync(lockFile,'wx',0o600); }
   catch { fail('Another project operation is active. If interrupted, verify it stopped before removing the lock.'); }
   try {
     const state = readState();
+    const info = projectInfo(input, state);
     const p = state[info.id] || {...info,active:false,pinned:false,lastActive:now()};
     if (p.target !== info.target) fail('Cache root changed; review the registered workspace before migrating its target.');
     if (action === 'clean') {
@@ -195,6 +219,7 @@ async function main() {
       const target = reviewedTarget(info,p,rest[0]);
       if (!target) { console.log('Nothing to clean'); return; }
       fs.rmSync(target,{recursive:true,force:false});
+      removeEmptyTargetParent(target, rest[0]);
       console.log('Removed reviewed generated directory: ' + target);
       return;
     }
